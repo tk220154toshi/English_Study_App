@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EngC — English, compiled</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Title bar -->
+    <header class="titlebar">
+      <div class="brand"><span class="logo">&lt;/&gt;</span> EngC <span class="tag">English, compiled</span></div>
+      <div class="titlebar-right">
+        <span id="modelBadge" class="badge-muted">model: …</span>
+        <span id="streakBadge" class="badge-streak" title="連続学習日数">🔥 0</span>
+      </div>
+    </header>
+
+    <div class="workbench">
+      <!-- Activity bar -->
+      <nav class="activitybar">
+        <button class="act active" data-mode="grammar" title="文法モード">📝</button>
+        <button class="act" data-mode="discuss" title="ディスカッションモード（AIニュース）">🗞️</button>
+      </nav>
+
+      <!-- Sidebar (mode panel) -->
+      <aside class="sidebar">
+        <!-- Grammar mode -->
+        <section id="panel-grammar" class="panel">
+          <div class="panel-head">問題 <span class="sub">PROBLEM</span></div>
+          <div class="controls">
+            <label>難易度
+              <select id="level">
+                <option value="1">Lv.1 かんたん</option>
+                <option value="2" selected>Lv.2</option>
+                <option value="3">Lv.3</option>
+                <option value="4">Lv.4</option>
+                <option value="5">Lv.5 むずかしい</option>
+              </select>
+            </label>
+            <button id="newProblem" class="btn primary">新しい問題を生成 ✨</button>
+            <label class="check-row">
+              <input type="checkbox" id="adaptive" checked />
+              <span>苦手分野を優先出題</span>
+            </label>
+          </div>
+
+          <div id="problemCard" class="problem-card empty">
+            <p class="hint">「新しい問題を生成」を押してスタート。<br />出題された内容を英語でエディタに書いて、<b>Compile ▶</b> しよう。</p>
+          </div>
+        </section>
+
+        <!-- Discussion mode -->
+        <section id="panel-discuss" class="panel hidden">
+          <div class="panel-head">AIニュース <span class="sub">DISCUSSION</span></div>
+          <div class="controls">
+            <button id="newNews" class="btn primary">ニュースを生成 🗞️</button>
+          </div>
+          <div id="newsCard" class="problem-card empty">
+            <p class="hint">最新AIニュース（LLM生成）を読んで、<br />自分の<b>意見・考察を英語で</b>書こう。<br />文法チェック＋AIとの対話ができます。</p>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Editor + output -->
+      <main class="editor-area">
+        <div class="tabbar">
+          <div class="tab active"><span class="dot"></span> <span id="fileName">answer.en</span></div>
+          <div class="editor-actions">
+            <button id="compileBtn" class="btn run">▶ Compile</button>
+            <button id="refactorBtn" class="btn ghost" title="正しく書けたら、より自然な言い回しを提案">✨ Refactor</button>
+            <button id="revealBtn" class="btn ghost" title="模範解答を表示">👁 模範解答</button>
+          </div>
+        </div>
+        <div id="editor"></div>
+
+        <div class="output">
+          <div class="output-tabs">
+            <button class="otab active" data-tab="terminal">OUTPUT</button>
+            <button class="otab" data-tab="problems">PROBLEMS <span id="probCount" class="count">0</span></button>
+          </div>
+          <div id="tab-terminal" class="output-body terminal"><div class="term-line muted">engc ready. Write English, then press <b>▶ Compile</b>.</div></div>
+          <div id="tab-problems" class="output-body problems hidden"></div>
+        </div>
+      </main>
+
+      <!-- Stats / gamification -->
+      <aside class="stats">
+        <div class="level-block">
+          <canvas id="levelRing" width="120" height="120"></canvas>
+          <div class="level-info">
+            <div class="level-num">Lv.<span id="levelNum">1</span></div>
+            <div class="xp-text"><span id="xpNow">0</span> / <span id="xpNext">100</span> XP</div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-v" id="statProblems">0</div><div class="stat-l">問題数</div></div>
+          <div class="stat"><div class="stat-v" id="statClean">0</div><div class="stat-l">ノーミス</div></div>
+          <div class="stat"><div class="stat-v" id="statNatural">–</div><div class="stat-l">自然さ avg</div></div>
+        </div>
+
+        <div class="section-title">理解度マップ <span class="sub">accuracy by category</span></div>
+        <canvas id="radar" width="240" height="240"></canvas>
+
+        <div class="section-title">実績 <span class="sub">badges</span></div>
+        <div id="badges" class="badges"></div>
+
+        <button id="resetBtn" class="btn ghost tiny">進捗をリセット</button>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Monaco editor from CDN (AMD loader). Requires internet on first load. -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+  <script src="gamification.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
