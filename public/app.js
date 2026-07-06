@@ -66,6 +66,7 @@
     $('#newNews').addEventListener('click', newNews);
     $('#newTest').addEventListener('click', () => newTest());
     $('#tsCards').addEventListener('click', onTestCardClick);
+    $('#refreshUsage').addEventListener('click', refreshUsage);
     $('#compileBtn').addEventListener('click', runCompile);
     $('#refactorBtn').addEventListener('click', runRefactor);
     $('#revealBtn').addEventListener('click', reveal);
@@ -82,11 +83,13 @@
     $('#panel-grammar').classList.toggle('hidden', mode !== 'grammar');
     $('#panel-test').classList.toggle('hidden', mode !== 'test');
     $('#panel-discuss').classList.toggle('hidden', mode !== 'discuss');
+    $('#panel-usage').classList.toggle('hidden', mode !== 'usage');
     $('#fileName').textContent = mode === 'discuss' ? 'opinion.en' : mode === 'test' ? 'test.en' : 'answer.en';
     $('#compileBtn').innerHTML = mode === 'discuss' ? '▶ Send' : mode === 'test' ? '▶ Run Tests' : '▶ Compile';
-    const hideExtras = mode === 'discuss';
+    const hideExtras = mode === 'discuss' || mode === 'usage';
     $('#revealBtn').style.display = hideExtras ? 'none' : '';
     $('#refactorBtn').style.display = hideExtras ? 'none' : '';
+    if (mode === 'usage') { refreshUsage(); startUsagePoll(); } else { stopUsagePoll(); }
   }
 
   function showOutputTab(tab) {
@@ -177,7 +180,10 @@
   }
 
   // ---- compile / send ----------------------------------------------------
-  function runCompile() { state.mode === 'discuss' ? sendDiscuss() : compile(); }
+  function runCompile() {
+    if (state.mode === 'usage') { toast('📊 利用状況モードです（Compile は文法/テストモードで）'); return; }
+    state.mode === 'discuss' ? sendDiscuss() : compile();
+  }
 
   async function compile() {
     const text = editor.getValue();
@@ -482,6 +488,67 @@
     if (!card) return;
     if (e.target.closest('[data-act="drill"]')) { e.stopPropagation(); newTest([card.dataset.cat]); return; }
     card.classList.toggle('open');
+  }
+
+  // ---- API usage dashboard -----------------------------------------------
+  let usagePollTimer = null;
+  function startUsagePoll() { stopUsagePoll(); usagePollTimer = setInterval(() => { if (state.mode === 'usage') refreshUsage(); }, 5000); }
+  function stopUsagePoll() { if (usagePollTimer) { clearInterval(usagePollTimer); usagePollTimer = null; } }
+
+  async function refreshUsage() {
+    try {
+      const u = await fetch('/api/usage').then((r) => r.json());
+      renderUsage(u);
+    } catch (e) {
+      $('#usageBody').innerHTML = `<p class="hint" style="color:var(--red)">取得に失敗しました: ${esc(e.message)}</p>`;
+    }
+  }
+
+  function renderUsage(u) {
+    const body = $('#usageBody');
+    const s = u.session || {};
+    const fmt = (n) => (n || 0).toLocaleString();
+    const rl = u.rateLimit;
+    const gauges = [];
+    const add = (label, m) => {
+      if (!m || m.limit == null) return;
+      const rem = m.remaining == null ? 0 : m.remaining;
+      const pct = m.limit ? Math.max(0, Math.min(1, rem / m.limit)) : 0;
+      const color = pct > 0.5 ? 'var(--green)' : pct > 0.2 ? '#cca700' : 'var(--red)';
+      const reset = m.resetSec != null ? `<span class="g-reset">resets ${m.resetSec}s</span>` : '<span></span>';
+      gauges.push(`<div class="gauge">
+        <div class="g-top"><span>${label}</span><span class="g-val">${fmt(rem)} / ${fmt(m.limit)}</span></div>
+        <div class="g-bar"><div class="g-fill" style="width:${(pct * 100).toFixed(1)}%;background:${color}"></div></div>
+        <div class="g-sub"><span>残り ${(pct * 100).toFixed(0)}%</span>${reset}</div></div>`);
+    };
+    if (rl) {
+      add('リクエスト / 分', rl.requests);
+      add('トークン / 分', rl.tokens);
+      add('入力トークン / 分', rl.inputTokens);
+      add('出力トークン / 分', rl.outputTokens);
+    }
+    const gaugeHtml = gauges.length ? gauges.join('')
+      : `<p class="hint" style="color:var(--fg-dim)">レート上限ヘッダーは未取得です。APIを1回呼ぶと表示されます（プロキシ環境ではヘッダーが除去される場合があります）。</p>`;
+
+    const cost = s.pricingKnown ? '$' + (s.estCostUSD || 0).toFixed(4) : '—（料金表なし）';
+    const rows = [
+      ['リクエスト数', fmt(s.requests)],
+      ['入力トークン', fmt(s.inputTokens)],
+      ['出力トークン', fmt(s.outputTokens)],
+      ['キャッシュ読取', fmt(s.cacheReadTokens)],
+      ['キャッシュ作成', fmt(s.cacheCreationTokens)],
+      ['概算コスト', cost],
+    ].map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${esc(v)}</td></tr>`).join('');
+
+    body.innerHTML = `
+      <div class="usage-model">model: <b>${esc(u.model || '')}</b></div>
+      <div class="section-title">レート上限 <span class="sub">rate limits / min</span></div>
+      ${gaugeHtml}
+      <div class="section-title" style="margin-top:14px">このセッションの消費 <span class="sub">since server start</span></div>
+      <table class="usage-table">${rows}</table>
+      <div class="section-title" style="margin-top:14px">トークン / 呼び出し <span class="sub">recent calls</span></div>
+      <canvas id="usageSpark" width="252" height="70"></canvas>`;
+    EngcCharts.drawSpark($('#usageSpark'), (u.history || []).map((h) => h.tokens));
   }
 
   // ---- toast -------------------------------------------------------------

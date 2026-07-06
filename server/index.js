@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { callJSON, MODEL } from './llm.js';
+import { snapshot as usageSnapshot } from './usage.js';
 import {
   CHECKER_SYSTEM, buildCheckPrompt, checkSchema,
   PROBLEM_SYSTEM, buildProblemPrompt, problemSchema,
@@ -36,6 +37,11 @@ const wrap = (fn) => (req, res) => {
 // Expose config + the taxonomy so the frontend can render legends/charts.
 app.get('/api/config', (req, res) => {
   res.json({ model: MODEL, hasCredentials: hasCredentials(), taxonomy: TAXONOMY });
+});
+
+// API usage + rate-limit snapshot for the dashboard.
+app.get('/api/usage', (req, res) => {
+  res.json({ model: MODEL, ...usageSnapshot() });
 });
 
 // Generate a grammar exercise (Japanese prompt).

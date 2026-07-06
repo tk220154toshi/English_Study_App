@@ -109,5 +109,30 @@
     });
   }
 
-  window.EngcCharts = { drawLevelRing, drawRadar };
+  // Tiny bar sparkline of per-call token totals.
+  function drawSpark(canvas, values) {
+    const ctx = dpr(canvas);
+    const { w, h } = canvas._logical;
+    ctx.clearRect(0, 0, w, h);
+    if (!values || !values.length) {
+      ctx.fillStyle = '#666'; ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('データなし', w / 2, h / 2);
+      return;
+    }
+    const max = Math.max(...values, 1);
+    const n = values.length;
+    const gap = 2;
+    const bw = Math.max(2, (w - (n - 1) * gap) / n);
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#3794ff'); grad.addColorStop(1, '#4ec9b0');
+    ctx.fillStyle = grad;
+    values.forEach((v, i) => {
+      const bh = Math.max(1, (v / max) * (h - 4));
+      const x = i * (bw + gap);
+      ctx.fillRect(x, h - bh, bw, bh);
+    });
+  }
+
+  window.EngcCharts = { drawLevelRing, drawRadar, drawSpark };
 })();

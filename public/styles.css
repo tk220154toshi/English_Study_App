@@ -184,4 +184,20 @@ body {
 .test-banner { background: #2a2340; border: 1px solid #4a3a7a; border-radius: 6px; padding: 8px 10px; margin: 8px 0; font-size: 12px; color: #d5c9ff; }
 .test-banner b { color: var(--purple); }
 
+/* API usage dashboard */
+.usage-model { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); margin-bottom: 10px; }
+.usage-model b { color: var(--fg); }
+.gauge { margin-bottom: 12px; }
+.g-top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+.g-val { font-family: var(--mono); color: var(--fg); }
+.g-bar { height: 8px; background: var(--bg-3); border-radius: 5px; overflow: hidden; }
+.g-fill { height: 100%; border-radius: 5px; transition: width .4s ease; }
+.g-sub { font-size: 10px; color: var(--fg-dim); margin-top: 3px; display: flex; justify-content: space-between; font-family: var(--mono); }
+.g-reset { color: #ffb454; }
+.usage-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.usage-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); }
+.usage-table td.num { text-align: right; font-family: var(--mono); color: var(--green); }
+.usage-table tr:last-child td { border-bottom: none; font-weight: 600; }
+#usageSpark { display: block; margin-top: 4px; max-width: 100%; }
+
 /* Squiggle marker colors are handled by Monaco; nothing needed here. */

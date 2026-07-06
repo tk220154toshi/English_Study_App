@@ -1,6 +1,7 @@
 // llm.js — thin wrapper around the Anthropic SDK that always returns validated
 // JSON via structured outputs.
 import Anthropic from '@anthropic-ai/sdk';
+import { record as recordUsage } from './usage.js';
 
 const MODEL = process.env.ENGC_MODEL || 'claude-opus-4-8';
 
@@ -14,13 +15,19 @@ const client = new Anthropic();
  * emit valid JSON — no fragile prompt-parsing.
  */
 export async function callJSON({ system, user, schema, maxTokens = 4000 }) {
-  const response = await client.messages.create({
+  // .withResponse() also hands us the raw HTTP response so we can read the
+  // anthropic-ratelimit-* headers for the usage dashboard.
+  const { data: response, response: httpRes } = await client.messages.create({
     model: MODEL,
     max_tokens: maxTokens,
     system,
     messages: [{ role: 'user', content: user }],
     output_config: { format: { type: 'json_schema', schema } },
-  });
+  }).withResponse();
+
+  try {
+    recordUsage({ usage: response.usage, headers: httpRes?.headers, model: MODEL });
+  } catch { /* usage tracking is best-effort */ }
 
   if (response.stop_reason === 'refusal') {
     throw new Error('The model declined to respond to this input.');

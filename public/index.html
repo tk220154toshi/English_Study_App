@@ -23,6 +23,7 @@
         <button class="act active" data-mode="grammar" title="文法モード">📝</button>
         <button class="act" data-mode="test" title="テストスイート（間違いの間隔反復）">🧪</button>
         <button class="act" data-mode="discuss" title="ディスカッションモード（AIニュース）">🗞️</button>
+        <button class="act" data-mode="usage" title="API利用状況（レート上限・消費量）">📊</button>
       </nav>
 
       <!-- Sidebar (mode panel) -->
@@ -79,6 +80,13 @@
           <div id="newsCard" class="problem-card empty">
             <p class="hint">最新AIニュース（LLM生成）を読んで、<br />自分の<b>意見・考察を英語で</b>書こう。<br />文法チェック＋AIとの対話ができます。</p>
           </div>
+        </section>
+
+        <!-- API usage dashboard -->
+        <section id="panel-usage" class="panel hidden">
+          <div class="panel-head">API利用状況 <span class="sub">USAGE &amp; LIMITS</span></div>
+          <div class="controls"><button id="refreshUsage" class="btn ghost">↻ 更新</button></div>
+          <div id="usageBody"><p class="hint" style="color:var(--fg-dim)">APIを1回でも呼ぶと、レート上限（残量・リセット）と消費トークン・概算コストが表示されます。</p></div>
         </section>
       </aside>
 
