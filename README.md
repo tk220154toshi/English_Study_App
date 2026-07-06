@@ -57,6 +57,38 @@ npm start
 ブラウザで **http://localhost:5173** を開く。初回は Monaco を CDN
 （jsdelivr）から読み込むためネット接続が必要です。
 
+## 📱 スマホから動かす / 見る
+
+このアプリは **Node サーバー＋Anthropic APIキー**が必要です（キーはブラウザに
+置けないため、静的ページのように「開くだけ」では動きません）。スマホから使うには
+次のいずれか。
+
+### 方法A：GitHub Codespaces（PCが無くても、スマホのブラウザだけで動く / おすすめ）
+1. スマホの**ブラウザ**（GitHubアプリではなく）で
+   **https://github.com/tk220154toshi/Lab11** を開く
+2. 緑の **Code** ボタン → **Codespaces** タブ → **Create codespace**
+3. 起動したら下部のターミナルで API キーを設定して起動：
+   ```bash
+   printf 'ANTHROPIC_API_KEY=sk-ant-あなたのキー\n' > .env
+   npm start
+   ```
+   （依存関係は devcontainer が自動で `npm install` 済み）
+4. 「ポート 5173 を開きますか？」の通知、または **PORTS** タブの 5173 を開く。
+   ポートの表示を **Public** にすると、外出先の別端末からもその URL で開けます。
+
+### 方法B：自宅PCで起動 → 同じ Wi‑Fi のスマホから見る
+1. PC で `npm install && npm start`
+2. スマホのブラウザで `http://<PCのIPアドレス>:5173`
+   （PCの IP：Windows は `ipconfig`、Mac は `ipconfig getifaddr en0`）
+3. 外出先からアクセスしたい場合は Cloudflare Tunnel / ngrok で公開 URL 化。
+
+### 方法C：常設の公開URLが欲しい → 無料ホスティングにデプロイ
+Render / Railway などに接続し、環境変数 `ANTHROPIC_API_KEY` を設定、
+Start command は `npm start`。デプロイ後のURLをスマホでブックマーク。
+
+> 💡 現状のUIは VSCode 風の横並びレイアウト（デスクトップ最適化）で、縦長スマホでは
+> 少し窮屈です。スマホ向けのレスポンシブ表示が必要なら対応します。
+
 ## 使い方
 
 **文法モード 📝**
