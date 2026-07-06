@@ -6,11 +6,12 @@
   const taxByCode = {};
 
   const state = {
-    mode: 'grammar',            // 'grammar' | 'discuss'
-    problem: null,              // current grammar problem
+    mode: 'grammar',            // 'grammar' | 'test' | 'discuss'
+    problem: null,              // current grammar/test problem
     news: null,                 // current AI-news briefing
     lastResult: null,           // last check/discuss payload
     problemScored: false,       // has the current problem awarded completion XP?
+    testTargets: null,          // categories being graded by the current SRS test
   };
 
   const $ = (s) => document.querySelector(s);
@@ -44,11 +45,13 @@
       $('#modelBadge').textContent = 'model: ' + cfg.model;
       taxonomy = cfg.taxonomy || [];
       taxonomy.forEach((t) => (taxByCode[t.code] = t));
+      EngcSRS.setTaxonomy(taxonomy);
       if (!cfg.hasCredentials) {
         term(`⚠  No ANTHROPIC_API_KEY configured on the server.\n    Copy .env.example → .env and add your key, then restart.`, 'warn', true);
       }
     } catch (e) { /* offline config is non-fatal */ }
     renderStats();
+    renderTestPanel();
     wire();
   }
 
@@ -61,12 +64,14 @@
 
     $('#newProblem').addEventListener('click', newProblem);
     $('#newNews').addEventListener('click', newNews);
+    $('#newTest').addEventListener('click', () => newTest());
+    $('#tsCards').addEventListener('click', onTestCardClick);
     $('#compileBtn').addEventListener('click', runCompile);
     $('#refactorBtn').addEventListener('click', runRefactor);
     $('#revealBtn').addEventListener('click', reveal);
     $('#resetBtn').addEventListener('click', () => {
-      if (confirm('学習の進捗（XP・レベル・実績）をすべて消去します。よろしいですか？')) {
-        EngcGame.reset(); renderStats(); toast('進捗をリセットしました');
+      if (confirm('学習の進捗（XP・レベル・実績・弱点カード）をすべて消去します。よろしいですか？')) {
+        EngcGame.reset(); EngcSRS.reset(); renderStats(); renderTestPanel(); toast('進捗をリセットしました');
       }
     });
   }
@@ -75,11 +80,13 @@
     state.mode = mode;
     document.querySelectorAll('.act').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
     $('#panel-grammar').classList.toggle('hidden', mode !== 'grammar');
+    $('#panel-test').classList.toggle('hidden', mode !== 'test');
     $('#panel-discuss').classList.toggle('hidden', mode !== 'discuss');
-    $('#fileName').textContent = mode === 'discuss' ? 'opinion.en' : 'answer.en';
-    $('#compileBtn').innerHTML = mode === 'discuss' ? '▶ Send' : '▶ Compile';
-    $('#revealBtn').style.display = mode === 'discuss' ? 'none' : '';
-    $('#refactorBtn').style.display = mode === 'discuss' ? 'none' : '';
+    $('#fileName').textContent = mode === 'discuss' ? 'opinion.en' : mode === 'test' ? 'test.en' : 'answer.en';
+    $('#compileBtn').innerHTML = mode === 'discuss' ? '▶ Send' : mode === 'test' ? '▶ Run Tests' : '▶ Compile';
+    const hideExtras = mode === 'discuss';
+    $('#revealBtn').style.display = hideExtras ? 'none' : '';
+    $('#refactorBtn').style.display = hideExtras ? 'none' : '';
   }
 
   function showOutputTab(tab) {
@@ -118,7 +125,7 @@
         focusCategories: adaptive ? EngcGame.weakCategories(3) : [],
         recentGrammar: state.problem ? [state.problem.targetGrammar] : [],
       });
-      state.problem = p; state.problemScored = false;
+      state.problem = p; state.problemScored = false; state.testTargets = null;
       renderProblem(p);
       editor.setValue('');
       clearTerm(); term('engc: 新しい問題を読み込みました。英語で書いて ▶ Compile してください。', 'ok');
@@ -139,7 +146,8 @@
 
   function reveal() {
     if (!state.problem) { toast('先に問題を生成してください'); return; }
-    const box = $('#refBox');
+    const box = state.mode === 'test' ? $('#refBoxTest') : $('#refBox');
+    if (!box) return;
     if (box.dataset.shown) { box.innerHTML = ''; delete box.dataset.shown; return; }
     box.dataset.shown = '1';
     box.innerHTML = `<div class="reference">📖 模範解答:\n${esc(state.problem.referenceEn)}</div>`;
@@ -281,6 +289,16 @@
     // Gamification
     const r = EngcGame.recordCompile({ diagnostics: diags, summary: s, mode });
     flashRewards(r);
+
+    // Spaced-repetition test suite: capture every error as a weakness card,
+    // and — if this compile was an SRS test — grade the targeted categories.
+    const errored = EngcSRS.observe(diags);
+    if (state.testTargets && state.testTargets.length) {
+      const report = EngcSRS.grade(state.testTargets, errored);
+      renderTestReport(report, state.testTargets);
+      state.testTargets = null;
+    }
+    renderTestPanel();
   }
 
   function renderProblemsPanel(diags, fileName) {
@@ -375,6 +393,95 @@
       const b = EngcGame.badgeList().find((x) => x.id === id);
       if (b) toast(`実績解除: ${b.icon} ${b.label}`);
     }, 400 * (i + 1)));
+  }
+
+  // ---- personal test suite (spaced repetition) ---------------------------
+  function labelOf(cat) { return (taxonomy.find((t) => t.category === cat)?.label) || cat; }
+
+  async function newTest(explicitTargets) {
+    setMode('test');
+    const targets = (explicitTargets && explicitTargets.length) ? explicitTargets : EngcSRS.dueTargets(2);
+    const btn = $('#newTest'); btn.disabled = true;
+    busy('generating targeted test …');
+    try {
+      const p = await api('/api/problem', {
+        level: Number($('#level').value),
+        focusCategories: targets,
+        recentGrammar: state.problem ? [state.problem.targetGrammar] : [],
+      });
+      state.problem = p; state.problemScored = false;
+      state.testTargets = targets.length ? targets : null;
+      renderTestProblem(p, targets);
+      editor.setValue('');
+      clearTerm();
+      if (targets.length) term('engc test — 弱点 [' + targets.map(labelOf).join(', ') + '] を狙った問題です。英語で書いて ▶ Run Tests。', 'info');
+      else term('engc: まだ弱点データがありません。通常問題を出しました。ミスすると弱点カードが蓄積されます。', 'muted');
+      editor.focus();
+    } catch (e) { errTerm(e); } finally { btn.disabled = false; }
+  }
+
+  function renderTestProblem(p, targets) {
+    const banner = targets.length
+      ? `<div class="test-banner">🧪 テスト対象: <b>${targets.map((t) => esc(labelOf(t))).join(' / ')}</b></div>` : '';
+    const hints = (p.hintsJa || []).map((h) => `<li>${esc(h)}</li>`).join('');
+    $('#testProblemCard').innerHTML = banner + `
+      <div class="problem-card">
+        <div class="ptitle">${esc(p.titleJa)}</div>
+        <div class="pmeta">Lv.${esc(p.difficulty)} · target: ${esc(p.targetGrammar)}</div>
+        <div class="pbody">${esc(p.promptJa)}</div>
+        ${hints ? `<ul class="phints">${hints}</ul>` : ''}
+        <div id="refBoxTest"></div>
+      </div>`;
+  }
+
+  function renderTestReport(report, targets) {
+    term('$ engc test — targeting: ' + targets.map(labelOf).join(', '), 'muted');
+    let pass = 0;
+    for (const r of report) {
+      if (r.pass) { pass++; term(`  ✓ ${labelOf(r.category)}  PASS  (box ${r.toBox}/5, next in ${r.nextDays}d)`, 'ok'); }
+      else term(`  ✗ ${labelOf(r.category)}  FAIL  — 復習キューに戻しました`, 'err');
+    }
+    const failed = report.length - pass;
+    const line = document.createElement('div');
+    line.className = 'term-line term-summary ' + (failed ? 'err' : 'ok');
+    line.textContent = `Tests: ${pass} passed, ${failed} failed, ${report.length} total`;
+    $('#tab-terminal').appendChild(line);
+    if (!failed && report.length) toast('全テスト合格！ 🧪✅', 'xp');
+  }
+
+  function renderTestPanel() {
+    if (!window.EngcSRS) return;
+    const s = EngcSRS.stats();
+    $('#tsTracked').textContent = s.tracked;
+    $('#tsDue').textContent = s.due;
+    const cards = EngcSRS.list();
+    const box = $('#tsCards');
+    if (!cards.length) {
+      box.innerHTML = '<p class="hint" style="color:var(--fg-dim)">まだ弱点がありません。文法モードでミスをすると、ここに「テストケース」が溜まっていきます。</p>';
+      return;
+    }
+    box.innerHTML = cards.map((c) => {
+      const pips = '●'.repeat(c.box) + '○'.repeat(5 - c.box);
+      const due = c.isDue ? '<span class="ts-due now">🔴 due</span>' : `<span class="ts-due">🕒 ${c.dueInDays}d</span>`;
+      const ex = c.examples.map((e) =>
+        `<div class="ts-ex"><div class="exq">“${esc(e.quote || '—')}”</div><div class="exm">${esc(e.message)}</div>${e.suggestion ? `<div class="exf">→ ${esc(e.suggestion)}</div>` : ''}</div>`).join('');
+      return `<div class="ts-card ${c.isDue ? 'due' : ''}" data-cat="${esc(c.category)}">
+        <div class="ts-head" data-act="toggle">
+          <span class="ts-pips">${pips}</span>
+          <span class="ts-label">${esc(c.label)} <span class="ts-meta">${c.passed}/${c.seen}✓</span></span>
+          ${due}
+          <button class="ts-drill" data-act="drill" title="この弱点だけ出題">🎯</button>
+        </div>
+        <div class="ts-examples">${ex || '<div class="ts-meta">事例なし</div>'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function onTestCardClick(e) {
+    const card = e.target.closest('.ts-card');
+    if (!card) return;
+    if (e.target.closest('[data-act="drill"]')) { e.stopPropagation(); newTest([card.dataset.cat]); return; }
+    card.classList.toggle('open');
   }
 
   // ---- toast -------------------------------------------------------------

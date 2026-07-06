@@ -21,6 +21,7 @@
       <!-- Activity bar -->
       <nav class="activitybar">
         <button class="act active" data-mode="grammar" title="文法モード">📝</button>
+        <button class="act" data-mode="test" title="テストスイート（間違いの間隔反復）">🧪</button>
         <button class="act" data-mode="discuss" title="ディスカッションモード（AIニュース）">🗞️</button>
       </nav>
 
@@ -48,6 +49,24 @@
 
           <div id="problemCard" class="problem-card empty">
             <p class="hint">「新しい問題を生成」を押してスタート。<br />出題された内容を英語でエディタに書いて、<b>Compile ▶</b> しよう。</p>
+          </div>
+        </section>
+
+        <!-- Test-suite mode (spaced repetition of past mistakes) -->
+        <section id="panel-test" class="panel hidden">
+          <div class="panel-head">テストスイート <span class="sub">SPACED REPETITION</span></div>
+          <div class="ts-summary">
+            <div class="ts-stat"><span id="tsTracked">0</span><small>弱点</small></div>
+            <div class="ts-stat due"><span id="tsDue">0</span><small>今日のテスト</small></div>
+          </div>
+          <div class="controls">
+            <button id="newTest" class="btn primary">▶ 弱点テストを生成</button>
+            <p class="ts-note">過去に出した間違いを蓄積し、忘れた頃に出題します。<br />書けたら <b>▶ Run Tests</b> で採点。</p>
+          </div>
+          <div id="testProblemCard"></div>
+          <div class="section-title" style="margin-top:14px">弱点カード <span class="sub">weaknesses</span></div>
+          <div id="tsCards" class="ts-cards">
+            <p class="hint" style="color:var(--fg-dim)">まだ弱点がありません。文法モードでミスをすると、ここに「テストケース」が溜まっていきます。</p>
           </div>
         </section>
 
@@ -115,6 +134,7 @@
   <!-- Monaco editor from CDN (AMD loader). Requires internet on first load. -->
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
   <script src="gamification.js"></script>
+  <script src="srs.js"></script>
   <script src="charts.js"></script>
   <script src="app.js"></script>
 </body>

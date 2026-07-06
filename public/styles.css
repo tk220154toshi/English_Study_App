@@ -156,4 +156,32 @@ body {
 .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--fg-dim); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Test-suite (SRS) panel */
+.ts-summary { display: flex; gap: 8px; margin-bottom: 12px; }
+.ts-stat { flex: 1; background: var(--bg-3); border-radius: 6px; padding: 8px; text-align: center; }
+.ts-stat span { font-size: 20px; font-weight: 700; color: var(--green); }
+.ts-stat.due span { color: #ffb454; }
+.ts-stat small { display: block; font-size: 10px; color: var(--fg-dim); margin-top: 2px; }
+.ts-note { font-size: 11px; color: var(--fg-dim); line-height: 1.6; margin: 0; }
+.ts-cards { display: flex; flex-direction: column; gap: 8px; }
+.ts-card { background: var(--bg-3); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.ts-card.due { border-color: #6b4a1a; }
+.ts-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; }
+.ts-head:hover { background: #34343a; }
+.ts-label { flex: 1; font-size: 12.5px; }
+.ts-pips { letter-spacing: 1px; font-size: 10px; color: var(--green); }
+.ts-due { font-size: 10px; padding: 2px 6px; border-radius: 8px; background: #2a2a2a; color: var(--fg-dim); font-family: var(--mono); white-space: nowrap; }
+.ts-due.now { background: #3a2a12; color: #ffb454; }
+.ts-drill { border: none; background: transparent; cursor: pointer; font-size: 13px; padding: 2px 4px; }
+.ts-drill:hover { transform: scale(1.15); }
+.ts-meta { font-size: 10px; color: var(--fg-dim); font-family: var(--mono); }
+.ts-examples { padding: 0 10px 8px; display: none; }
+.ts-card.open .ts-examples { display: block; }
+.ts-ex { border-left: 2px solid var(--red); padding: 4px 8px; margin-top: 6px; font-size: 11px; background: #2a2224; border-radius: 0 4px 4px 0; }
+.ts-ex .exq { font-family: var(--mono); color: #ff9b9b; }
+.ts-ex .exm { color: var(--fg-dim); margin-top: 2px; }
+.ts-ex .exf { color: var(--green); margin-top: 2px; }
+.test-banner { background: #2a2340; border: 1px solid #4a3a7a; border-radius: 6px; padding: 8px 10px; margin: 8px 0; font-size: 12px; color: #d5c9ff; }
+.test-banner b { color: var(--purple); }
+
 /* Squiggle marker colors are handled by Monaco; nothing needed here. */
