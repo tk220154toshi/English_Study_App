@@ -129,8 +129,11 @@ Tests: 1 passed, 1 failed, 2 total
 
 ## 設定
 
-- `ENGC_MODEL` … 使用モデル（既定 `claude-opus-4-8`）。コスト/速度重視なら
-  `claude-sonnet-5` や `claude-haiku-4-5` に変更可。
+- **モデル切り替え** … 画面右上のドロップダウンでいつでも変更可能（Opus 4.8 /
+  Sonnet 5 / Haiku 4.5 / Fable 5 / Opus 4.7）。選択はブラウザに保存され、以降の
+  問題生成・チェック・ディスカッションに適用されます。📊 利用状況にモデル別の
+  消費が反映されます。
+- `ENGC_MODEL` … ドロップダウンの既定値（省略時 `claude-opus-4-8`）。
 - `PORT` … ポート（既定 `5173`）。
 
 ## 仕組み

@@ -4,6 +4,7 @@
   let monacoRef = null;
   let taxonomy = [];
   const taxByCode = {};
+  let currentModel = null;
 
   const state = {
     mode: 'grammar',            // 'grammar' | 'test' | 'discuss'
@@ -42,7 +43,7 @@
   async function boot() {
     try {
       const cfg = await fetch('/api/config').then((r) => r.json());
-      $('#modelBadge').textContent = 'model: ' + cfg.model;
+      buildModelSelect(cfg);
       taxonomy = cfg.taxonomy || [];
       taxonomy.forEach((t) => (taxByCode[t.code] = t));
       EngcSRS.setTaxonomy(taxonomy);
@@ -110,8 +111,24 @@
   }
   function busy(msg) { clearTerm(); showOutputTab('terminal'); return term(`<span class="spinner"></span> ${esc(msg)}`, 'muted', true); }
 
+  function buildModelSelect(cfg) {
+    const sel = $('#modelSelect');
+    const models = (cfg.models && cfg.models.length) ? cfg.models : [{ id: cfg.model, label: cfg.model }];
+    const saved = localStorage.getItem('engc.model');
+    currentModel = (saved && models.some((m) => m.id === saved)) ? saved : cfg.model;
+    sel.innerHTML = models.map((m) => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join('');
+    sel.value = currentModel;
+    sel.addEventListener('change', () => {
+      currentModel = sel.value;
+      localStorage.setItem('engc.model', currentModel);
+      toast('モデル: ' + sel.options[sel.selectedIndex].text.split(' —')[0]);
+    });
+  }
+
   async function api(path, body) {
-    const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    const payload = { ...(body || {}) };
+    if (currentModel) payload.model = currentModel;
+    const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
     return data;

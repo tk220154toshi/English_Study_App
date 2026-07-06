@@ -40,6 +40,8 @@ body {
 .tag { color: var(--fg-dim); font-weight: 400; font-size: 11px; }
 .titlebar-right { display: flex; align-items: center; gap: 10px; }
 .badge-muted { color: var(--fg-dim); font-size: 11px; font-family: var(--mono); }
+.model-select { background: var(--bg-2); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-size: 11px; max-width: 240px; cursor: pointer; }
+.model-select:hover { border-color: var(--accent); }
 .badge-streak { background: #3a2a12; color: #ffb454; border-radius: 10px; padding: 2px 8px; font-size: 11px; }
 
 /* Workbench grid */

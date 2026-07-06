@@ -4,7 +4,7 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { callJSON, MODEL } from './llm.js';
+import { callJSON, MODEL, MODELS } from './llm.js';
 import { snapshot as usageSnapshot } from './usage.js';
 import {
   CHECKER_SYSTEM, buildCheckPrompt, checkSchema,
@@ -36,7 +36,7 @@ const wrap = (fn) => (req, res) => {
 
 // Expose config + the taxonomy so the frontend can render legends/charts.
 app.get('/api/config', (req, res) => {
-  res.json({ model: MODEL, hasCredentials: hasCredentials(), taxonomy: TAXONOMY });
+  res.json({ model: MODEL, models: MODELS, hasCredentials: hasCredentials(), taxonomy: TAXONOMY });
 });
 
 // API usage + rate-limit snapshot for the dashboard.
@@ -52,6 +52,7 @@ app.post('/api/problem', wrap(async (req, res) => {
     user: buildProblemPrompt({ level, focusCategories, recentGrammar }),
     schema: problemSchema,
     maxTokens: 1500,
+    model: (req.body || {}).model,
   });
   res.json(data);
 }));
@@ -65,6 +66,7 @@ app.post('/api/check', wrap(async (req, res) => {
     user: buildCheckPrompt({ text, promptJa, targetGrammar }),
     schema: checkSchema,
     maxTokens: 4000,
+    model: (req.body || {}).model,
   });
   res.json(data);
 }));
@@ -76,6 +78,7 @@ app.post('/api/news', wrap(async (req, res) => {
     user: buildNewsPrompt(),
     schema: newsSchema,
     maxTokens: 1500,
+    model: (req.body || {}).model,
   });
   res.json(data);
 }));
@@ -89,6 +92,7 @@ app.post('/api/discuss', wrap(async (req, res) => {
     user: buildDiscussPrompt({ news, text }),
     schema: discussSchema,
     maxTokens: 5000,
+    model: (req.body || {}).model,
   });
   res.json(data);
 }));
