@@ -202,4 +202,35 @@ body {
 .usage-table tr:last-child td { border-bottom: none; font-weight: 600; }
 #usageSpark { display: block; margin-top: 4px; max-width: 100%; }
 
+/* Command mode — stage + avatar */
+.stage { position: relative; height: 240px; background: radial-gradient(120% 120% at 50% 0%, #202a3a 0%, #161b26 70%); border-bottom: 1px solid var(--border); overflow: hidden; }
+.stage.hidden { display: none; }
+.stage-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(#1b2230, #10141d); border-top: 1px solid #2a3550; box-shadow: inset 0 8px 24px rgba(0,0,0,.4); }
+.stage-floor::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(90deg, rgba(80,120,180,.12) 1px, transparent 1px); background-size: 32px 100%; }
+#stageMount { position: absolute; left: 50%; bottom: 44px; width: 0; height: 0; }
+#sv-root { position: absolute; left: -75px; bottom: 0; transition: transform .12s linear; will-change: transform; }
+#sv-root.sitting #sv-legL, #sv-root.sitting #sv-legR { opacity: .6; }
+#sv-fig { transform-box: fill-box; }
+#sv-gest { transform-box: fill-box; transform-origin: 50% 100%; }
+#sv-head { transform-box: fill-box; transform-origin: 50% 100%; }
+#sv-armL, #sv-armR { transform-box: fill-box; transform-origin: 50% 8%; }
+#sv-legL, #sv-legR { transform-box: fill-box; transform-origin: 50% 4%; }
+#sv-eyeL, #sv-eyeR { animation: sv-blink 4.5s infinite; }
+@keyframes sv-blink { 0%,96%,100% { transform: scaleY(1); } 98% { transform: scaleY(.1); } }
+.sv-bubble { position: absolute; left: 50%; bottom: 176px; transform: translateX(-50%) scale(.9); background: #eef6ff; color: #10202e; padding: 7px 12px; border-radius: 12px; font-size: 13px; max-width: 260px; white-space: normal; text-align: center; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+.sv-bubble::after { content: ''; position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); border: 7px solid transparent; border-top-color: #eef6ff; }
+.sv-bubble.show { opacity: 1; transform: translateX(-50%) scale(1); }
+.stage-label { position: absolute; right: 10px; top: 8px; font-family: var(--mono); font-size: 11px; color: #7fd7c4; }
+.stage-label span { color: var(--fg-dim); }
+
+/* Command panel */
+.voice-controls { display: flex; flex-direction: column; gap: 8px; }
+.voice-controls label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--fg-dim); }
+.voice-controls select, .voice-controls input[type=range] { width: 100%; }
+.voice-controls .check-row { flex-direction: row; align-items: center; gap: 6px; color: var(--fg); }
+.cmd-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.cmd-chip { background: var(--bg-3); border: 1px solid var(--border); border-radius: 10px; padding: 3px 8px; font-family: var(--mono); font-size: 11px; color: #9fd0c5; }
+.term-line .run { color: #7fd7c4; }
+.problem-card code { background: #12202e; padding: 1px 5px; border-radius: 3px; font-size: 12px; color: #9fd0c5; }
+
 /* Squiggle marker colors are handled by Monaco; nothing needed here. */

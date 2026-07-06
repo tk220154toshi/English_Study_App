@@ -11,7 +11,9 @@ import {
   PROBLEM_SYSTEM, buildProblemPrompt, problemSchema,
   NEWS_SYSTEM, buildNewsPrompt, newsSchema,
   DISCUSS_SYSTEM, buildDiscussPrompt, discussSchema,
-  TAXONOMY,
+  COMMAND_TASK_SYSTEM, buildCommandTaskPrompt, commandTaskSchema,
+  COMMAND_SYSTEM, buildCommandPrompt, commandSchema,
+  TAXONOMY, ACTIONS,
 } from './prompts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,7 +38,7 @@ const wrap = (fn) => (req, res) => {
 
 // Expose config + the taxonomy so the frontend can render legends/charts.
 app.get('/api/config', (req, res) => {
-  res.json({ model: MODEL, models: MODELS, hasCredentials: hasCredentials(), taxonomy: TAXONOMY });
+  res.json({ model: MODEL, models: MODELS, hasCredentials: hasCredentials(), taxonomy: TAXONOMY, actions: ACTIONS });
 });
 
 // API usage + rate-limit snapshot for the dashboard.
@@ -92,6 +94,33 @@ app.post('/api/discuss', wrap(async (req, res) => {
     user: buildDiscussPrompt({ news, text }),
     schema: discussSchema,
     maxTokens: 5000,
+    model: (req.body || {}).model,
+  });
+  res.json(data);
+}));
+
+// Command mode: generate a "command Reisia" task (Japanese).
+app.post('/api/command-task', wrap(async (req, res) => {
+  const { level = 2, recent = [] } = req.body || {};
+  const data = await callJSON({
+    system: COMMAND_TASK_SYSTEM,
+    user: buildCommandTaskPrompt({ level, recent }),
+    schema: commandTaskSchema,
+    maxTokens: 1200,
+    model: (req.body || {}).model,
+  });
+  res.json(data);
+}));
+
+// Command mode: compile English + parse it into an action program for Reisia.
+app.post('/api/command', wrap(async (req, res) => {
+  const { task = '', text = '' } = req.body || {};
+  if (!text.trim()) return res.status(400).json({ error: 'Write a command first.' });
+  const data = await callJSON({
+    system: COMMAND_SYSTEM,
+    user: buildCommandPrompt({ task, text }),
+    schema: commandSchema,
+    maxTokens: 4000,
     model: (req.body || {}).model,
   });
   res.json(data);

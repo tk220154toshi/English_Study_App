@@ -13,6 +13,8 @@
     lastResult: null,           // last check/discuss payload
     problemScored: false,       // has the current problem awarded completion XP?
     testTargets: null,          // categories being graded by the current SRS test
+    commandTask: null,          // current "control Reisia" mission
+    commandScored: false,       // has the current mission awarded completion XP?
   };
 
   const $ = (s) => document.querySelector(s);
@@ -43,6 +45,7 @@
   async function boot() {
     try {
       const cfg = await fetch('/api/config').then((r) => r.json());
+      cfgCache = cfg;
       buildModelSelect(cfg);
       taxonomy = cfg.taxonomy || [];
       taxonomy.forEach((t) => (taxByCode[t.code] = t));
@@ -53,8 +56,11 @@
     } catch (e) { /* offline config is non-fatal */ }
     renderStats();
     renderTestPanel();
+    setupCommand(cfgCache);
     wire();
   }
+
+  let cfgCache = null;
 
   // ---- UI wiring ---------------------------------------------------------
   function wire() {
@@ -68,6 +74,12 @@
     $('#newTest').addEventListener('click', () => newTest());
     $('#tsCards').addEventListener('click', onTestCardClick);
     $('#refreshUsage').addEventListener('click', refreshUsage);
+    $('#newCommand').addEventListener('click', newCommand);
+    $('#voiceOn').addEventListener('change', (e) => EngcStage.setMuted(!e.target.checked));
+    $('#voiceSelect').addEventListener('change', (e) => EngcStage.setVoice(e.target.value));
+    $('#voicePitch').addEventListener('input', (e) => EngcStage.setPitch(e.target.value));
+    $('#voiceRate').addEventListener('input', (e) => EngcStage.setRate(e.target.value));
+    $('#voiceTest').addEventListener('click', () => EngcStage.speak('Hello, I am Reisia. I am ready for your commands.'));
     $('#compileBtn').addEventListener('click', runCompile);
     $('#refactorBtn').addEventListener('click', runRefactor);
     $('#revealBtn').addEventListener('click', reveal);
@@ -82,12 +94,17 @@
     state.mode = mode;
     document.querySelectorAll('.act').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
     $('#panel-grammar').classList.toggle('hidden', mode !== 'grammar');
+    $('#panel-command').classList.toggle('hidden', mode !== 'command');
     $('#panel-test').classList.toggle('hidden', mode !== 'test');
     $('#panel-discuss').classList.toggle('hidden', mode !== 'discuss');
     $('#panel-usage').classList.toggle('hidden', mode !== 'usage');
-    $('#fileName').textContent = mode === 'discuss' ? 'opinion.en' : mode === 'test' ? 'test.en' : 'answer.en';
-    $('#compileBtn').innerHTML = mode === 'discuss' ? '▶ Send' : mode === 'test' ? '▶ Run Tests' : '▶ Compile';
-    const hideExtras = mode === 'discuss' || mode === 'usage';
+    $('#stage').classList.toggle('hidden', mode !== 'command');
+    if (mode !== 'command' && window.EngcStage) EngcStage.stop();
+    const names = { discuss: 'opinion.en', test: 'test.en', command: 'command.en' };
+    $('#fileName').textContent = names[mode] || 'answer.en';
+    const btns = { discuss: '▶ Send', test: '▶ Run Tests', command: '▶ Run' };
+    $('#compileBtn').innerHTML = btns[mode] || '▶ Compile';
+    const hideExtras = mode === 'discuss' || mode === 'usage' || mode === 'command';
     $('#revealBtn').style.display = hideExtras ? 'none' : '';
     $('#refactorBtn').style.display = hideExtras ? 'none' : '';
     if (mode === 'usage') { refreshUsage(); startUsagePoll(); } else { stopUsagePoll(); }
@@ -199,6 +216,7 @@
   // ---- compile / send ----------------------------------------------------
   function runCompile() {
     if (state.mode === 'usage') { toast('📊 利用状況モードです（Compile は文法/テストモードで）'); return; }
+    if (state.mode === 'command') return runCommand();
     state.mode === 'discuss' ? sendDiscuss() : compile();
   }
 
@@ -566,6 +584,99 @@
       <div class="section-title" style="margin-top:14px">トークン / 呼び出し <span class="sub">recent calls</span></div>
       <canvas id="usageSpark" width="252" height="70"></canvas>`;
     EngcCharts.drawSpark($('#usageSpark'), (u.history || []).map((h) => h.tokens));
+  }
+
+  // ---- Command mode: control Reisia in English ---------------------------
+  function setupCommand(cfg) {
+    if (window.EngcStage) { EngcStage.init($('#stageMount')); EngcStage.setPitch(1.1); EngcStage.setRate(1); }
+    const acts = (cfg && cfg.actions) || [];
+    $('#cmdActions').innerHTML = acts.map((a) => `<span class="cmd-chip">${esc(a)}</span>`).join('');
+    populateVoices();
+    if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = populateVoices;
+  }
+
+  function populateVoices() {
+    const sel = $('#voiceSelect');
+    const voices = (window.EngcStage && EngcStage.getVoices()) || [];
+    if (!voices.length) { sel.innerHTML = '<option>（この端末に音声がありません）</option>'; return; }
+    const sorted = [...voices].sort((a, b) => (b.lang.startsWith('en') ? 1 : 0) - (a.lang.startsWith('en') ? 1 : 0));
+    sel.innerHTML = sorted.map((v) => `<option value="${esc(v.voiceURI)}">${esc(v.name)} (${esc(v.lang)})</option>`).join('');
+    const pref = sorted.find((v) => v.lang.startsWith('en') && /female|samantha|victoria|zira|aria|jenny|google us/i.test(v.name))
+      || sorted.find((v) => v.lang.startsWith('en')) || sorted[0];
+    if (pref) { sel.value = pref.voiceURI; EngcStage.setVoice(pref.voiceURI); }
+  }
+
+  async function newCommand() {
+    setMode('command');
+    const btn = $('#newCommand'); btn.disabled = true;
+    busy('generating mission …');
+    try {
+      const t = await api('/api/command-task', {
+        level: Number($('#cmdLevel').value),
+        recent: state.commandTask ? [state.commandTask.taskJa] : [],
+      });
+      state.commandTask = t; state.commandScored = false;
+      renderCommandTask(t);
+      editor.setValue(''); EngcStage.reset();
+      clearTerm(); term('engc: ミッションを読み込みました。英語でレイシアに指示して ▶ Run。', 'ok');
+      editor.focus();
+    } catch (e) { errTerm(e); } finally { btn.disabled = false; }
+  }
+
+  function renderCommandTask(t) {
+    const hints = (t.hintsJa || []).map((h) => `<li>${esc(h)}</li>`).join('');
+    $('#commandCard').classList.remove('empty');
+    $('#commandCard').innerHTML = `
+      <div class="ptitle">${esc(t.titleJa)}</div>
+      <div class="pmeta">Lv.${esc(t.difficulty)} · mission</div>
+      <div class="pbody">${esc(t.taskJa)}</div>
+      ${hints ? `<ul class="phints">${hints}</ul>` : ''}
+      <button id="cmdReveal" class="btn ghost tiny" style="margin-top:8px">👁 英語の例</button>
+      <div id="cmdRef"></div>`;
+    $('#cmdReveal').addEventListener('click', () => {
+      const box = $('#cmdRef');
+      if (box.dataset.shown) { box.innerHTML = ''; delete box.dataset.shown; return; }
+      box.dataset.shown = '1';
+      box.innerHTML = `<div class="reference">📖 ${esc(t.sampleEn)}</div>`;
+    });
+  }
+
+  function fmtStep(s) {
+    if (s.action === 'speak') return `speak("${esc(s.text || '')}")`;
+    if (s.action === 'wait') return `wait(${esc(s.seconds || 0.5)}s)`;
+    const args = [];
+    if (s.direction) args.push(esc(s.direction));
+    if (['move', 'jump', 'spin', 'clap'].includes(s.action) && s.count > 1) args.push(esc(s.count));
+    return `${esc(s.action)}(${args.join(', ')})`;
+  }
+
+  async function runCommand() {
+    const text = editor.getValue();
+    if (!text.trim()) { busy(''); term('engc: コマンドを英語で書いてください。', 'warn'); return; }
+    busy('compiling & running command.en …'); setButtons(false);
+    try {
+      const res = await api('/api/command', { task: state.commandTask ? state.commandTask.taskJa : '', text });
+      state.lastResult = res;
+      applyResult(res, 'command.en', 'command'); // diagnostics + gamification + SRS
+      term('$ reisia run command.en', 'muted');
+      const program = res.program || [];
+      if (!program.length) term('  (no executable commands parsed)', 'warn');
+      EngcStage.reset();
+      await EngcStage.run(program, { onTrace: (s) => term('  → ' + fmtStep(s), 'run', true) });
+      if (res.reisiaLineEn) {
+        term('🤖 Reisia: ' + res.reisiaLineEn + (res.reisiaLineJa ? `  （${res.reisiaLineJa}）` : ''), 'ok');
+        await EngcStage.speak(res.reisiaLineEn);
+      }
+      if (res.taskSuccess) {
+        term('✓ mission accomplished — ' + (res.taskComment || ''), 'ok');
+        if (state.commandTask && !state.commandScored) {
+          state.commandScored = true; EngcGame.recordProblemComplete();
+          toast('ミッション達成！ +10 XP 🤖', 'xp'); renderStats();
+        }
+      } else {
+        term('✗ not quite — ' + (res.taskComment || ''), 'warn');
+      }
+    } catch (e) { errTerm(e); } finally { setButtons(true); }
   }
 
   // ---- toast -------------------------------------------------------------

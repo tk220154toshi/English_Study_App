@@ -259,3 +259,126 @@ export const DISCUSS_SYSTEM =
   '\n\nIn addition to compiling their English, you are a curious, well-informed ' +
   'discussion partner. Be substantive and respectful. replyEn/followupQuestionEn ' +
   'in English; replyGlossJa in Japanese.';
+
+// ===========================================================================
+// Command mode — the learner writes English to control an android ("Reisia").
+// English becomes an imperative command language; the avatar is the runtime.
+// ===========================================================================
+
+// The "instruction set": the actions the avatar can perform.
+export const ACTIONS = [
+  'move', 'turn', 'wave', 'raise_arm', 'lower_arm', 'nod', 'shake_head',
+  'jump', 'spin', 'bow', 'sit', 'stand', 'point', 'clap', 'dance',
+  'look', 'wait', 'speak', 'idle',
+];
+export const DIRECTIONS = ['forward', 'back', 'left', 'right', 'up', 'down', 'around', ''];
+
+const ACTION_HELP = `move(direction, count): walk. direction ∈ forward|back|left|right, count = steps
+turn(direction): direction ∈ left|right|around
+wave: wave a hand
+raise_arm(direction) / lower_arm: direction ∈ left|right|up
+nod / shake_head: head yes / no
+jump(count): hop count times
+spin(count): full turn(s)
+bow: bow forward
+sit / stand
+point(direction): point somewhere
+clap(count)
+dance
+look(direction): turn head to look
+wait(seconds): pause
+speak(text): SAY the given English text out loud (use for greetings/replies the user asked her to say)
+idle: relax`;
+
+const programItemSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    action:    { type: 'string', enum: ACTIONS },
+    direction: { type: 'string', enum: DIRECTIONS, description: 'empty string if not applicable' },
+    count:     { type: 'integer', description: 'steps / repetitions; use 1 if not applicable' },
+    text:      { type: 'string', description: 'for speak(); empty otherwise' },
+    seconds:   { type: 'number', description: 'for wait(); 0 otherwise' },
+  },
+  required: ['action', 'direction', 'count', 'text', 'seconds'],
+};
+
+// Reuses diagnosticSchema/summarySchema defined earlier in this module.
+export const commandTaskSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    titleJa:    { type: 'string', description: '短いタイトル（日本語）' },
+    taskJa:     { type: 'string', description: 'レイシアにさせたい動作の指示（日本語）。英語の答えは書かない' },
+    hintsJa:    { type: 'array', items: { type: 'string' }, description: '文法/表現のヒント（日本語、0〜3個）' },
+    difficulty: { type: 'integer' },
+    sampleEn:   { type: 'string', description: 'A correct English command sequence (hidden from the learner)' },
+  },
+  required: ['titleJa', 'taskJa', 'hintsJa', 'difficulty', 'sampleEn'],
+};
+
+export const commandSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    diagnostics:  { type: 'array', items: diagnosticSchema },
+    summary:      summarySchema,
+    program:      { type: 'array', items: programItemSchema, description: 'ordered actions parsed from the learner\'s ACTUAL English' },
+    reisiaLineEn: { type: 'string', description: 'A short natural line Reisia says out loud in reaction (ENGLISH)' },
+    reisiaLineJa: { type: 'string', description: 'そのセリフのごく短い日本語訳' },
+    taskSuccess:  { type: 'boolean', description: 'Do the commanded actions fulfil the Japanese task?' },
+    taskComment:  { type: 'string', description: 'One short English note on success or what was missing' },
+  },
+  required: ['diagnostics', 'summary', 'program', 'reisiaLineEn', 'reisiaLineJa', 'taskSuccess', 'taskComment'],
+};
+
+export function buildCommandTaskPrompt({ level = 2, recent = [] }) {
+  const avoid = recent.length ? `Avoid repeating these tasks: ${recent.join(' / ')}.` : '';
+  return `Create ONE task where the learner must command an android named "Reisia" in
+English to perform a short sequence of PHYSICAL actions.
+
+Difficulty: ${level}/5. ${avoid}
+Describe in Japanese ("taskJa") WHAT Reisia should do — e.g. 「手を振ってから3歩前に
+進み、その場でくるっと回ってください」. Do NOT reveal the English.
+The task must be achievable with this action set (so keep it physical):
+${ACTION_HELP}
+
+Scale difficulty by number of actions, counts, sequence connectors (first/then/
+after that), and grammar (imperatives; at higher levels allow simple conditions
+or repetition like "wave twice"). sampleEn = one correct English command sequence.`;
+}
+
+export const COMMAND_TASK_SYSTEM =
+  'You design playful "program the robot in English" exercises for Japanese learners. ' +
+  'Japanese fields must be natural Japanese; English fields natural English.';
+
+export function buildCommandPrompt({ task, text }) {
+  return `The learner is PROGRAMMING an android named Reisia by writing English
+commands. Do THREE things:
+
+1) COMPILE their English: report diagnostics + summary using the taxonomy and the
+   usual rules (English messages, verbatim quotes).
+2) PARSE their ACTUAL English into an ordered "program" of actions Reisia will
+   execute. Map faithfully to what they WROTE (not what they should have written)
+   so that wrong English produces wrong/partial behaviour — this is the point.
+   Use ONLY this action set (fill unused fields with ""/1/0):
+${ACTION_HELP}
+   If they tell Reisia to SAY something, use speak(text) with that English text.
+3) JUDGE "taskSuccess": would the executed program satisfy the requested task?
+   Give a one-line "taskComment". "reisiaLineEn" is a short in-character line
+   Reisia says out loud in reaction (friendly, concise English).
+
+TASK (what Reisia was asked to do, shown to the learner in Japanese):
+"""${task || '(free play — just do what the commands say)'}"""
+
+<<<COMMANDS
+${text}
+COMMANDS`;
+}
+
+export const COMMAND_SYSTEM =
+  CHECKER_RULES +
+  '\n\nYou also act as the runtime for an android named Reisia: you translate the ' +
+  'learner\'s English commands into an ordered action program. Parse literally so ' +
+  'that incorrect English yields incorrect actions. Reisia is calm, precise, and ' +
+  'friendly. reisiaLineEn in English; reisiaLineJa in Japanese.';

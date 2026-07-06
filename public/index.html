@@ -21,6 +21,7 @@
       <!-- Activity bar -->
       <nav class="activitybar">
         <button class="act active" data-mode="grammar" title="文法モード">📝</button>
+        <button class="act" data-mode="command" title="コマンドモード（英語でレイシアを制御）">🤖</button>
         <button class="act" data-mode="test" title="テストスイート（間違いの間隔反復）">🧪</button>
         <button class="act" data-mode="discuss" title="ディスカッションモード（AIニュース）">🗞️</button>
         <button class="act" data-mode="usage" title="API利用状況（レート上限・消費量）">📊</button>
@@ -51,6 +52,39 @@
           <div id="problemCard" class="problem-card empty">
             <p class="hint">「新しい問題を生成」を押してスタート。<br />出題された内容を英語でエディタに書いて、<b>Compile ▶</b> しよう。</p>
           </div>
+        </section>
+
+        <!-- Command mode: control the android in English -->
+        <section id="panel-command" class="panel hidden">
+          <div class="panel-head">コマンド <span class="sub">CONTROL REISIA</span></div>
+          <div class="controls">
+            <label>難易度
+              <select id="cmdLevel">
+                <option value="1">Lv.1</option>
+                <option value="2" selected>Lv.2</option>
+                <option value="3">Lv.3</option>
+                <option value="4">Lv.4</option>
+                <option value="5">Lv.5</option>
+              </select>
+            </label>
+            <button id="newCommand" class="btn primary">新しいミッション 🤖</button>
+          </div>
+          <div id="commandCard" class="problem-card empty">
+            <p class="hint">レイシアを<b>英語で操作</b>しよう。<br />例: <code>Wave, then walk forward three steps and turn around.</code><br />書けたら <b>▶ Run</b> で実行＆音声。</p>
+          </div>
+
+          <div class="section-title" style="margin-top:14px">音声 <span class="sub">voice (TTS)</span></div>
+          <div class="voice-controls">
+            <label class="check-row"><input type="checkbox" id="voiceOn" checked /> <span>🔊 音声を有効化</span></label>
+            <label>ボイス <select id="voiceSelect"><option>読み込み中…</option></select></label>
+            <label>ピッチ <input type="range" id="voicePitch" min="0" max="2" step="0.1" value="1.1" /></label>
+            <label>速さ <input type="range" id="voiceRate" min="0.5" max="1.6" step="0.1" value="1" /></label>
+            <button id="voiceTest" class="btn ghost tiny" style="margin-top:6px">🗣 テスト</button>
+            <p class="ts-note">※ブラウザ内蔵の音声です。特定キャラの声に寄せるには正規の音声を差し込みます（README参照）。</p>
+          </div>
+
+          <div class="section-title" style="margin-top:14px">命令セット <span class="sub">instruction set</span></div>
+          <div id="cmdActions" class="cmd-actions"></div>
         </section>
 
         <!-- Test-suite mode (spaced repetition of past mistakes) -->
@@ -100,6 +134,11 @@
             <button id="revealBtn" class="btn ghost" title="模範解答を表示">👁 模範解答</button>
           </div>
         </div>
+        <div id="stage" class="stage hidden">
+          <div class="stage-floor"></div>
+          <div id="stageMount"></div>
+          <div class="stage-label">Reisia <span>android runtime</span></div>
+        </div>
         <div id="editor"></div>
 
         <div class="output">
@@ -144,6 +183,7 @@
   <script src="gamification.js"></script>
   <script src="srs.js"></script>
   <script src="charts.js"></script>
+  <script src="stage.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
