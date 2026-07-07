@@ -19,7 +19,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
+html, body { height: 100%; margin: 0; max-width: 100%; overflow-x: hidden; }
 body {
   background: var(--bg);
   color: var(--fg);
@@ -27,7 +27,14 @@ body {
   font-size: 13px;
   overflow: hidden;
 }
-#app { display: flex; flex-direction: column; height: 100vh; }
+#app { display: flex; flex-direction: column; height: 100vh; max-width: 100%; overflow: hidden; }
+
+/* Anti-overflow: never let a stray element create horizontal scrolling */
+input, select, textarea, pre, table, img, canvas { max-width: 100%; }
+.usage-table { table-layout: fixed; }
+.pbody, .news-body, .term-line, .prob .ptext, .ts-ex, .reference, .settings-status,
+.usage-table td, .glossary .g, .problem-card, .ptitle { overflow-wrap: anywhere; word-break: break-word; }
+.output-body { overflow-x: hidden; }
 
 /* Title bar — height grows by the top safe-area inset (notch / Dynamic Island).
    env() is 0 on desktop / non-notched, so this is a no-op there. */
@@ -269,8 +276,11 @@ body {
     height: calc(100dvh - 36px - env(safe-area-inset-top, 0px)); }
 
   /* editor workspace fills the shell; output is a sheet (see below) */
-  .editor-area { position: absolute; inset: 0; display: flex; flex-direction: column; min-width: 0; }
-  .tabbar { flex: 0 0 auto; height: 44px; padding: 0 8px; gap: 8px; }
+  .editor-area { position: absolute; inset: 0; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+  .tabbar { flex: 0 0 auto; height: 44px; padding: 0 8px; gap: 6px; overflow: hidden; }
+  .tabbar .tab { display: none; } /* filename redundant on mobile (mode is in the title bar) */
+  .editor-actions { min-width: 0; gap: 6px; flex-wrap: nowrap; }
+  .btn.run { padding: 7px 10px; }
   .stage { flex: 0 0 46dvh; height: auto; }
   #editor { flex: 1 1 auto; height: auto; }
 
@@ -291,9 +301,11 @@ body {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 46; border: none;
     border-radius: 16px 16px 0 0; box-shadow: 0 -6px 26px rgba(0,0,0,.5);
     transform: translateY(100%); transition: transform .28s ease; }
-  .sidebar { max-height: 82dvh; overflow-y: auto; background: var(--bg-2); padding: 4px 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
-  .output  { height: calc(62dvh + env(safe-area-inset-bottom, 0px)); background: var(--bg-panel); padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .stats   { max-height: 86dvh; overflow-y: auto; background: var(--bg-2); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .sidebar { max-height: 82dvh; overflow-y: auto; overflow-x: hidden; background: var(--bg-2); padding: 4px 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .output  { height: calc(62dvh + env(safe-area-inset-bottom, 0px)); overflow-x: hidden; background: var(--bg-panel); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .stats   { max-height: 86dvh; overflow-y: auto; overflow-x: hidden; background: var(--bg-2); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .activitybar { overflow-x: hidden; }
+  .controls, .voice-controls, .cmd-actions, .ts-cards, .badges { max-width: 100%; }
   .sidebar.open, .output.open, .stats.open { transform: none; }
   .sidebar::before, .stats::before, .output::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 3px; background: #555; margin: 6px auto 4px; }
 
