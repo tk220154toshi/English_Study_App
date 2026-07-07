@@ -5,6 +5,7 @@ node_modules/
 .DS_Store
 dist/
 
-# Capacitor native projects (generated on your Mac)
+# Capacitor native projects (generated on your machine)
 ios/
 android/
+electron/

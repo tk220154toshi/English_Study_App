@@ -138,6 +138,31 @@ Xcode で：自分のiPhoneを選択 →「Signing & Capabilities」で自分の
 > 抽出され得ます**。BYOK（各自が自分のキーを入力）は安全ですが、**あなたのキーを
 > 埋め込んだまま配布しない**でください。自分の端末だけで使う分には問題ありません。
 
+## 🖥️ iPad / Mac で使う
+
+レスポンシブなWebアプリなので、iPad・Mac の**ブラウザでそのまま動きます**（⚙️ダイレクト
+＋自分のキー）。画面が広い時は自動でPC風の多カラム表示、狭い時はアプリUIに切り替わります。
+「アプリ」として入れる方法：
+
+### iPad
+- **かんたん（Xcode不要）**：iPad Safari で開く → 共有 → **ホーム画面に追加** → アイコンから全画面起動（同梱の manifest でアイコン/名前が付きます）
+- **ネイティブ**：既存の iOS ビルドは**ユニバーサル**（iPhone＋iPad対応）なので、Xcode で実機にiPadを選んで `npm run ios` → 実行
+
+### Mac
+- **かんたん（Xcode不要・macOS Sonoma以降）**：**Safari** で開く → メニュー「ファイル」→ **Dockに追加** → Mac アプリとして起動（※起動にはURLが必要＝`npm start` か デプロイ済みURL）
+- **ネイティブ・オフライン（サーバー不要）＝ Mac Catalyst**：Xcode で iOSターゲットの
+  「General → Supported Destinations」に **Mac (Mac Catalyst)** を追加 → 実行先を **My Mac** → ▶。
+  同じ `public/` がそのまま Mac アプリになります（ダイレクトモードで自分のキー）。
+- **クロスプラットフォーム（Mac/Win/Linux）＝ Electron**：
+  ```bash
+  npm i -D @capacitor-community/electron
+  npx cap add @capacitor-community/electron
+  npx cap open @capacitor-community/electron
+  ```
+
+いずれも初回に **⚙️設定 → ダイレクト → 自分のキー**。1つのコードベースで
+**iPhone / iPad / Mac** をカバーできます。
+
 ## 使い方
 
 **文法モード 📝**
