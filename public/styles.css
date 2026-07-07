@@ -306,6 +306,12 @@ input, select, textarea, pre, table, img, canvas { max-width: 100%; }
   .stats   { max-height: 86dvh; overflow-y: auto; overflow-x: hidden; background: var(--bg-2); padding-bottom: env(safe-area-inset-bottom, 0px); }
   .activitybar { overflow-x: hidden; }
   .controls, .voice-controls, .cmd-actions, .ts-cards, .badges { max-width: 100%; }
+
+  /* iOS auto-zooms into a focused field whose font is < 16px, which then
+     causes a persistent horizontal scroll. Keep focusable text fields at 16px. */
+  input, textarea { font-size: 16px; }
+  #apiKeyInput { font-size: 16px; }
+  .monaco-editor .inputarea, .monaco-editor textarea { font-size: 16px !important; }
   .sidebar.open, .output.open, .stats.open { transform: none; }
   .sidebar::before, .stats::before, .output::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 3px; background: #555; margin: 6px auto 4px; }
 
