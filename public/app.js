@@ -37,6 +37,7 @@
       scrollBeyondLastLine: false,
       padding: { top: 12 },
       renderWhitespace: 'boundary',
+      automaticLayout: true, // relayout on container/orientation changes
     });
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runCompile);
     boot();
@@ -80,6 +81,11 @@
     $('#voicePitch').addEventListener('input', (e) => EngcStage.setPitch(e.target.value));
     $('#voiceRate').addEventListener('input', (e) => EngcStage.setRate(e.target.value));
     $('#voiceTest').addEventListener('click', () => EngcStage.speak('Hello, I am Reisia. I am ready for your commands.'));
+    document.querySelectorAll('#mobileNav button').forEach((b) => b.addEventListener('click', () => {
+      const map = { sidebar: '.sidebar', editor: '.editor-area', stats: '.stats' };
+      const el = document.querySelector(map[b.dataset.jump]);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
     $('#compileBtn').addEventListener('click', runCompile);
     $('#refactorBtn').addEventListener('click', runRefactor);
     $('#revealBtn').addEventListener('click', reveal);
