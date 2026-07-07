@@ -29,10 +29,13 @@ body {
 }
 #app { display: flex; flex-direction: column; height: 100vh; }
 
-/* Title bar */
+/* Title bar — height grows by the top safe-area inset (notch / Dynamic Island).
+   env() is 0 on desktop / non-notched, so this is a no-op there. */
 .titlebar {
-  height: 36px; background: var(--bg-3); border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+  height: calc(36px + env(safe-area-inset-top, 0px));
+  background: var(--bg-3); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: env(safe-area-inset-top, 0px) calc(12px + env(safe-area-inset-right, 0px)) 0 calc(12px + env(safe-area-inset-left, 0px));
   -webkit-app-region: drag;
 }
 .brand { font-weight: 600; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; }
@@ -258,10 +261,12 @@ body {
   .brand-name { font-size: 13px; }
   .mode-label { display: inline; }
   .model-select { max-width: 30vw; }
-  .titlebar { position: relative; z-index: 50; gap: 2px; padding: 0 8px; }
+  .titlebar { position: relative; z-index: 50; gap: 2px;
+    padding: env(safe-area-inset-top, 0px) calc(8px + env(safe-area-inset-right, 0px)) 0 calc(8px + env(safe-area-inset-left, 0px)); }
 
-  /* workbench = positioning context filling below the 36px title bar */
-  .workbench { display: block; position: relative; height: calc(100dvh - 36px); overflow: hidden; }
+  /* workbench = positioning context filling below the title bar (incl. notch) */
+  .workbench { display: block; position: relative; overflow: hidden;
+    height: calc(100dvh - 36px - env(safe-area-inset-top, 0px)); }
 
   /* editor workspace fills the shell; output is a sheet (see below) */
   .editor-area { position: absolute; inset: 0; display: flex; flex-direction: column; min-width: 0; }
@@ -271,8 +276,9 @@ body {
 
   /* ---- Left drawer: mode switcher ---- */
   .drawer-head { display: block; padding: 10px 14px 6px; font-size: 11px; letter-spacing: .5px; color: var(--fg-dim); text-transform: uppercase; }
-  .activitybar { position: fixed; top: 36px; bottom: 0; left: 0; width: 78vw; max-width: 300px;
-    flex-direction: column; align-items: stretch; gap: 3px; padding: 6px; overflow-y: auto;
+  .activitybar { position: fixed; top: calc(36px + env(safe-area-inset-top, 0px)); bottom: 0; left: 0;
+    width: 78vw; max-width: 300px; flex-direction: column; align-items: stretch; gap: 3px; overflow-y: auto;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)) calc(6px + env(safe-area-inset-left, 0px));
     background: var(--activity); z-index: 45; transform: translateX(-100%); transition: transform .25s ease; box-shadow: 4px 0 22px rgba(0,0,0,.45); }
   .activitybar.open { transform: none; }
   .act { flex: 0 0 auto; width: auto; height: auto; display: flex; align-items: center; gap: 12px;
@@ -285,9 +291,9 @@ body {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 46; border: none;
     border-radius: 16px 16px 0 0; box-shadow: 0 -6px 26px rgba(0,0,0,.5);
     transform: translateY(100%); transition: transform .28s ease; }
-  .sidebar { max-height: 82dvh; overflow-y: auto; background: var(--bg-2); padding: 4px 0 16px; }
-  .output  { height: 62dvh; background: var(--bg-panel); }
-  .stats   { max-height: 86dvh; overflow-y: auto; background: var(--bg-2); }
+  .sidebar { max-height: 82dvh; overflow-y: auto; background: var(--bg-2); padding: 4px 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .output  { height: calc(62dvh + env(safe-area-inset-bottom, 0px)); background: var(--bg-panel); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .stats   { max-height: 86dvh; overflow-y: auto; background: var(--bg-2); padding-bottom: env(safe-area-inset-bottom, 0px); }
   .sidebar.open, .output.open, .stats.open { transform: none; }
   .sidebar::before, .stats::before, .output::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 3px; background: #555; margin: 6px auto 4px; }
 
