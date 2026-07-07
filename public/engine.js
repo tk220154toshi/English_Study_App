@@ -178,7 +178,11 @@ Rules:
   function getKey() { try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; } }
   function setKey(k) { try { k ? localStorage.setItem(KEY_STORE, k) : localStorage.removeItem(KEY_STORE); } catch {} }
   function hasKey() { return !!getKey(); }
-  function getMode() { try { return localStorage.getItem(MODE_STORE) || 'server'; } catch { return 'server'; } }
+  function isNative() { try { return !!(window.Capacitor && (window.Capacitor.isNativePlatform ? window.Capacitor.isNativePlatform() : true)); } catch { return false; } }
+  function getMode() {
+    try { const s = localStorage.getItem(MODE_STORE); if (s) return s; } catch {}
+    return isNative() ? 'direct' : 'server'; // native (iOS/Capacitor) has no backend
+  }
   function setMode(m) { try { localStorage.setItem(MODE_STORE, m === 'direct' ? 'direct' : 'server'); } catch {} }
 
   // ---- usage tracking (client-side) -------------------------------------

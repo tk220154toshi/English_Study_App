@@ -63,6 +63,8 @@
     renderTestPanel();
     setupCommand(cfgCache);
     wire();
+    // First launch with no backend + no key: take the user straight to Settings.
+    if (EngcEngine.getMode() === 'direct' && !EngcEngine.hasKey()) setMode('settings');
   }
 
   let cfgCache = null;

@@ -109,19 +109,20 @@ Start command は `npm start`。デプロイ後のURLをスマホでブックマ
 必要：**Mac + Xcode + Node**（自分の端末に入れるだけなら無料のApple IDでOK。
 App Store配布時のみ Apple Developer $99/年）。
 
+Capacitor と設定（`capacitor.config.json`）・スクリプトは**同梱済み**なので、Macでは
+これだけ：
+
 ```bash
 # リポジトリのフォルダで（Macで実行）
-npm install
-npm i -D @capacitor/cli
-npm i @capacitor/core @capacitor/ios
-
-npx cap add ios        # capacitor.config.json は同梱済み
-npx cap sync ios       # public/ をネイティブ側へコピー
-npx cap open ios       # Xcode が開く
+npm install        # Capacitor 一式もここで入る
+npm run ios:add    # = cap add ios（初回のみ。iOSプロジェクト生成）
+npm run ios        # = cap sync ios && cap open ios（Xcodeが開く）
 ```
 Xcode で：自分のiPhoneを選択 →「Signing & Capabilities」で自分のApple IDチームを
-設定 → ▶ 実行。アプリ内で ⚙️ 設定 →「ダイレクト」→ 自分のキーを入力すれば完成です。
-（`capacitor.config.json` で `CapacitorHttp` を有効化済み＝CORSの問題なく直接APIを叩けます）
+設定 → ▶ 実行。**ネイティブ起動時は自動でダイレクトモード**になり、初回は設定画面が
+開くので、自分のキーを入力すれば完成です（`CapacitorHttp` 有効＝CORSの心配なし）。
+
+以降アプリを更新したら `npm run ios` で再同期＆再ビルドできます。
 
 ### 本格運用に向けた仕上げ（任意・READMEの通り差し替え可能）
 - **オフライン & 審査対策**：現状 Monaco エディタを CDN から読み込みます。iOSアプリ
