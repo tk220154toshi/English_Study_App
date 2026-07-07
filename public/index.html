@@ -10,9 +10,11 @@
   <div id="app">
     <!-- Title bar -->
     <header class="titlebar">
-      <div class="brand"><span class="logo">&lt;/&gt;</span> EngC <span class="tag">English, compiled</span></div>
+      <button id="navToggle" class="icon-btn only-mobile" aria-label="メニュー">☰</button>
+      <div class="brand"><span class="logo">&lt;/&gt;</span> <span class="brand-name">EngC</span> <span class="tag">English, compiled</span><span id="modeLabel" class="mode-label"></span></div>
       <div class="titlebar-right">
         <select id="modelSelect" class="model-select" title="使用する Claude モデル"></select>
+        <button id="statsToggle" class="icon-btn only-mobile" aria-label="XP・統計">📊</button>
         <span id="streakBadge" class="badge-streak" title="連続学習日数">🔥 0</span>
       </div>
     </header>
@@ -20,12 +22,13 @@
     <div class="workbench">
       <!-- Activity bar -->
       <nav class="activitybar">
-        <button class="act active" data-mode="grammar" title="文法モード">📝</button>
-        <button class="act" data-mode="command" title="コマンドモード（英語でレイシアを制御）">🤖</button>
-        <button class="act" data-mode="test" title="テストスイート（間違いの間隔反復）">🧪</button>
-        <button class="act" data-mode="discuss" title="ディスカッションモード（AIニュース）">🗞️</button>
-        <button class="act" data-mode="usage" title="API利用状況（レート上限・消費量）">📊</button>
-        <button class="act" data-mode="settings" title="設定（APIキー・接続モード）">⚙️</button>
+        <div class="drawer-head only-mobile">モード</div>
+        <button class="act active" data-mode="grammar" title="文法モード">📝<span class="act-label">文法</span></button>
+        <button class="act" data-mode="command" title="コマンドモード（英語でレイシアを制御）">🤖<span class="act-label">コマンド（レイシア）</span></button>
+        <button class="act" data-mode="test" title="テストスイート（間違いの間隔反復）">🧪<span class="act-label">テスト</span></button>
+        <button class="act" data-mode="discuss" title="ディスカッションモード（AIニュース）">🗞️<span class="act-label">ディスカッション</span></button>
+        <button class="act" data-mode="usage" title="API利用状況（レート上限・消費量）">📊<span class="act-label">利用状況</span></button>
+        <button class="act" data-mode="settings" title="設定（APIキー・接続モード）">⚙️<span class="act-label">設定</span></button>
       </nav>
 
       <!-- Sidebar (mode panel) -->
@@ -145,11 +148,13 @@
       <!-- Editor + output -->
       <main class="editor-area">
         <div class="tabbar">
+          <button id="sheetToggle" class="chip only-mobile" aria-label="問題を開く">📋 問題</button>
           <div class="tab active"><span class="dot"></span> <span id="fileName">answer.en</span></div>
           <div class="editor-actions">
             <button id="compileBtn" class="btn run">▶ Compile</button>
-            <button id="refactorBtn" class="btn ghost" title="正しく書けたら、より自然な言い回しを提案">✨ Refactor</button>
-            <button id="revealBtn" class="btn ghost" title="模範解答を表示">👁 模範解答</button>
+            <button id="refactorBtn" class="btn ghost only-desktop" title="正しく書けたら、より自然な言い回しを提案">✨ Refactor</button>
+            <button id="revealBtn" class="btn ghost only-desktop" title="模範解答を表示">👁 模範解答</button>
+            <button id="outputToggle" class="chip only-mobile" aria-label="出力を開く">🖥 出力</button>
           </div>
         </div>
         <div id="stage" class="stage hidden">
@@ -195,12 +200,8 @@
       </aside>
     </div>
 
-    <!-- Mobile-only quick navigation between stacked sections -->
-    <nav id="mobileNav" class="mobile-nav">
-      <button data-jump="sidebar">📋 メニュー</button>
-      <button data-jump="editor">✏️ エディタ</button>
-      <button data-jump="stats">📊 統計</button>
-    </nav>
+    <!-- Mobile overlay backdrop (closes drawer / sheets on tap) -->
+    <div id="backdrop" class="backdrop"></div>
   </div>
 
   <!-- Monaco editor from CDN (AMD loader). Requires internet on first load. -->

@@ -21,6 +21,19 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  // ---- mobile app-shell: left drawer (modes) + bottom sheets --------------
+  const mq = window.matchMedia('(max-width: 820px)');
+  const isMobile = () => mq.matches;
+  const MODE_LABEL = { grammar: '文法', command: 'コマンド', test: 'テスト', discuss: 'ディスカッション', usage: '利用状況', settings: '設定' };
+  function closeOverlays() {
+    ['.activitybar', '.sidebar', '.output', '.stats'].forEach((s) => { const e = document.querySelector(s); if (e) e.classList.remove('open'); });
+    const bd = $('#backdrop'); if (bd) bd.classList.remove('show');
+  }
+  function openDrawer() { closeOverlays(); document.querySelector('.activitybar').classList.add('open'); $('#backdrop').classList.add('show'); }
+  function openSheet(sel) { closeOverlays(); const e = document.querySelector(sel); if (e) e.classList.add('open'); $('#backdrop').classList.add('show'); }
+  function toggleSheet(sel) { const e = document.querySelector(sel); (e && e.classList.contains('open')) ? closeOverlays() : openSheet(sel); }
+  function selectMode(mode) { setMode(mode); if (isMobile()) { closeOverlays(); openSheet('.sidebar'); } }
+
   // ---- boot --------------------------------------------------------------
   require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
   require(['vs/editor/editor.main'], function () {
@@ -64,7 +77,7 @@
     setupCommand(cfgCache);
     wire();
     // First launch with no backend + no key: take the user straight to Settings.
-    if (EngcEngine.getMode() === 'direct' && !EngcEngine.hasKey()) setMode('settings');
+    if (EngcEngine.getMode() === 'direct' && !EngcEngine.hasKey()) { setMode('settings'); if (isMobile()) openSheet('.sidebar'); }
   }
 
   let cfgCache = null;
@@ -72,7 +85,13 @@
   // ---- UI wiring ---------------------------------------------------------
   function wire() {
     document.querySelectorAll('.act').forEach((b) =>
-      b.addEventListener('click', () => setMode(b.dataset.mode)));
+      b.addEventListener('click', () => selectMode(b.dataset.mode)));
+    $('#navToggle').addEventListener('click', () => document.querySelector('.activitybar').classList.contains('open') ? closeOverlays() : openDrawer());
+    $('#statsToggle').addEventListener('click', () => toggleSheet('.stats'));
+    $('#sheetToggle').addEventListener('click', () => toggleSheet('.sidebar'));
+    $('#outputToggle').addEventListener('click', () => toggleSheet('.output'));
+    $('#backdrop').addEventListener('click', closeOverlays);
+    mq.addEventListener('change', closeOverlays);
     document.querySelectorAll('.otab').forEach((b) =>
       b.addEventListener('click', () => showOutputTab(b.dataset.tab)));
 
@@ -101,11 +120,6 @@
       const sel = document.querySelector('input[name=apiMode]:checked');
       if (sel) { EngcEngine.setMode(sel.value); renderSettings(); toast('接続モード: ' + (sel.value === 'direct' ? 'ダイレクト' : 'サーバー経由')); }
     }));
-    document.querySelectorAll('#mobileNav button').forEach((b) => b.addEventListener('click', () => {
-      const map = { sidebar: '.sidebar', editor: '.editor-area', stats: '.stats' };
-      const el = document.querySelector(map[b.dataset.jump]);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }));
     $('#compileBtn').addEventListener('click', runCompile);
     $('#refactorBtn').addEventListener('click', runRefactor);
     $('#revealBtn').addEventListener('click', reveal);
@@ -128,6 +142,7 @@
     $('#stage').classList.toggle('hidden', mode !== 'command');
     if (mode !== 'command' && window.EngcStage) EngcStage.stop();
     if (mode === 'settings') renderSettings();
+    $('#modeLabel').textContent = MODE_LABEL[mode] ? ' · ' + MODE_LABEL[mode] : '';
     const names = { discuss: 'opinion.en', test: 'test.en', command: 'command.en' };
     $('#fileName').textContent = names[mode] || 'answer.en';
     const btns = { discuss: '▶ Send', test: '▶ Run Tests', command: '▶ Run' };
@@ -222,7 +237,9 @@
       <div class="pmeta">Lv.${esc(p.difficulty)} · target: ${esc(p.targetGrammar)}</div>
       <div class="pbody">${esc(p.promptJa)}</div>
       ${hints ? `<ul class="phints">${hints}</ul>` : ''}
+      <button id="probRevealBtn" class="btn ghost tiny only-mobile" style="margin-top:8px">👁 模範解答</button>
       <div id="refBox"></div>`;
+    const rb = $('#probRevealBtn'); if (rb) rb.addEventListener('click', reveal);
   }
 
   function reveal() {
@@ -259,6 +276,7 @@
 
   // ---- compile / send ----------------------------------------------------
   function runCompile() {
+    if (isMobile()) closeOverlays(); // reveal the workspace / stage
     if (state.mode === 'usage') { toast('📊 利用状況モードです（Compile は文法/テストモードで）'); return; }
     if (state.mode === 'command') return runCommand();
     state.mode === 'discuss' ? sendDiscuss() : compile();
@@ -384,6 +402,9 @@
       state.testTargets = null;
     }
     renderTestPanel();
+    // On mobile, surface results as a bottom sheet (but keep the stage visible
+    // in command mode — the trace is reachable via the 🖥 output chip).
+    if (isMobile() && mode !== 'command') openSheet('.output');
   }
 
   function renderProblemsPanel(diags, fileName) {
