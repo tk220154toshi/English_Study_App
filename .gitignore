@@ -4,3 +4,7 @@ node_modules/
 *.log
 .DS_Store
 dist/
+
+# Capacitor native projects (generated on your Mac)
+ios/
+android/

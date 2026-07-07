@@ -25,6 +25,7 @@
         <button class="act" data-mode="test" title="テストスイート（間違いの間隔反復）">🧪</button>
         <button class="act" data-mode="discuss" title="ディスカッションモード（AIニュース）">🗞️</button>
         <button class="act" data-mode="usage" title="API利用状況（レート上限・消費量）">📊</button>
+        <button class="act" data-mode="settings" title="設定（APIキー・接続モード）">⚙️</button>
       </nav>
 
       <!-- Sidebar (mode panel) -->
@@ -116,6 +117,23 @@
           </div>
         </section>
 
+        <!-- Settings: API key + connection mode (server vs direct/BYOK) -->
+        <section id="panel-settings" class="panel hidden">
+          <div class="panel-head">設定 <span class="sub">SETTINGS</span></div>
+          <div class="controls">
+            <div class="section-title" style="margin-top:0">接続モード <span class="sub">connection</span></div>
+            <label class="check-row"><input type="radio" name="apiMode" value="server" /> <span>サーバー経由（PC / Codespaces）</span></label>
+            <label class="check-row"><input type="radio" name="apiMode" value="direct" /> <span>ダイレクト（自分のキーで直接・iOS向け / サーバー不要）</span></label>
+            <label style="margin-top:8px">Anthropic API キー（あなた自身のキー）
+              <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
+            </label>
+            <button id="saveKey" class="btn primary">保存</button>
+            <button id="clearKey" class="btn ghost tiny">キーを消去</button>
+            <div id="settingsStatus" class="settings-status"></div>
+            <p class="ts-note">「ダイレクト」は端末から直接 Anthropic を呼びます（サーバー不要）。キーは端末内に保存され、あなた自身の課金で動きます。iOSアプリではKeychainに差し替え可（README「iOSアプリ化」参照）。</p>
+          </div>
+        </section>
+
         <!-- API usage dashboard -->
         <section id="panel-usage" class="panel hidden">
           <div class="panel-head">API利用状況 <span class="sub">USAGE &amp; LIMITS</span></div>
@@ -191,6 +209,7 @@
   <script src="srs.js"></script>
   <script src="charts.js"></script>
   <script src="stage.js"></script>
+  <script src="engine.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

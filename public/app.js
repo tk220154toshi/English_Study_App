@@ -45,14 +45,18 @@
 
   async function boot() {
     try {
-      const cfg = await fetch('/api/config').then((r) => r.json());
+      const cfg = await getConfig();
       cfgCache = cfg;
       buildModelSelect(cfg);
       taxonomy = cfg.taxonomy || [];
       taxonomy.forEach((t) => (taxByCode[t.code] = t));
       EngcSRS.setTaxonomy(taxonomy);
       if (!cfg.hasCredentials) {
-        term(`⚠  No ANTHROPIC_API_KEY configured on the server.\n    Copy .env.example → .env and add your key, then restart.`, 'warn', true);
+        if (EngcEngine.getMode() === 'direct') {
+          term('⚠  ダイレクトモードです。⚙️ 設定であなたの Anthropic API キーを入力してください。', 'warn');
+        } else {
+          term('⚠  No ANTHROPIC_API_KEY configured on the server.\n    .env に鍵を入れるか、⚙️ 設定で「ダイレクト」に切り替えて自分の鍵を使ってください。', 'warn', true);
+        }
       }
     } catch (e) { /* offline config is non-fatal */ }
     renderStats();
@@ -81,6 +85,20 @@
     $('#voicePitch').addEventListener('input', (e) => EngcStage.setPitch(e.target.value));
     $('#voiceRate').addEventListener('input', (e) => EngcStage.setRate(e.target.value));
     $('#voiceTest').addEventListener('click', () => EngcStage.speak('Hello, I am Reisia. I am ready for your commands.'));
+    $('#saveKey').addEventListener('click', () => {
+      EngcEngine.setKey($('#apiKeyInput').value.trim());
+      renderSettings();
+      // refresh model badge / credential state
+      if (cfgCache) cfgCache.hasCredentials = EngcEngine.hasKey();
+      toast(EngcEngine.hasKey() ? 'キーを保存しました' : 'キーが空です');
+    });
+    $('#clearKey').addEventListener('click', () => {
+      EngcEngine.setKey(''); $('#apiKeyInput').value = ''; renderSettings(); toast('キーを消去しました');
+    });
+    document.querySelectorAll('input[name=apiMode]').forEach((r) => r.addEventListener('change', () => {
+      const sel = document.querySelector('input[name=apiMode]:checked');
+      if (sel) { EngcEngine.setMode(sel.value); renderSettings(); toast('接続モード: ' + (sel.value === 'direct' ? 'ダイレクト' : 'サーバー経由')); }
+    }));
     document.querySelectorAll('#mobileNav button').forEach((b) => b.addEventListener('click', () => {
       const map = { sidebar: '.sidebar', editor: '.editor-area', stats: '.stats' };
       const el = document.querySelector(map[b.dataset.jump]);
@@ -104,13 +122,15 @@
     $('#panel-test').classList.toggle('hidden', mode !== 'test');
     $('#panel-discuss').classList.toggle('hidden', mode !== 'discuss');
     $('#panel-usage').classList.toggle('hidden', mode !== 'usage');
+    $('#panel-settings').classList.toggle('hidden', mode !== 'settings');
     $('#stage').classList.toggle('hidden', mode !== 'command');
     if (mode !== 'command' && window.EngcStage) EngcStage.stop();
+    if (mode === 'settings') renderSettings();
     const names = { discuss: 'opinion.en', test: 'test.en', command: 'command.en' };
     $('#fileName').textContent = names[mode] || 'answer.en';
     const btns = { discuss: '▶ Send', test: '▶ Run Tests', command: '▶ Run' };
     $('#compileBtn').innerHTML = btns[mode] || '▶ Compile';
-    const hideExtras = mode === 'discuss' || mode === 'usage' || mode === 'command';
+    const hideExtras = mode === 'discuss' || mode === 'usage' || mode === 'command' || mode === 'settings';
     $('#revealBtn').style.display = hideExtras ? 'none' : '';
     $('#refactorBtn').style.display = hideExtras ? 'none' : '';
     if (mode === 'usage') { refreshUsage(); startUsagePoll(); } else { stopUsagePoll(); }
@@ -151,10 +171,26 @@
   async function api(path, body) {
     const payload = { ...(body || {}) };
     if (currentModel) payload.model = currentModel;
+    if (EngcEngine.getMode() === 'direct') return EngcEngine.call(path, payload); // BYOK, no backend
     const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
     return data;
+  }
+
+  // Config/usage come from the backend in server mode, or the local engine in
+  // direct mode. If the backend is unreachable (e.g. iOS app with no server),
+  // fall back to direct automatically.
+  async function getConfig() {
+    if (EngcEngine.getMode() === 'direct') return EngcEngine.config();
+    try {
+      const r = await fetch('/api/config');
+      if (!r.ok) throw new Error('config');
+      return await r.json();
+    } catch {
+      EngcEngine.setMode('direct');
+      return EngcEngine.config();
+    }
   }
 
   // ---- problem generation -----------------------------------------------
@@ -538,7 +574,7 @@
 
   async function refreshUsage() {
     try {
-      const u = await fetch('/api/usage').then((r) => r.json());
+      const u = EngcEngine.getMode() === 'direct' ? EngcEngine.usage() : await fetch('/api/usage').then((r) => r.json());
       renderUsage(u);
     } catch (e) {
       $('#usageBody').innerHTML = `<p class="hint" style="color:var(--red)">取得に失敗しました: ${esc(e.message)}</p>`;
@@ -683,6 +719,23 @@
         term('✗ not quite — ' + (res.taskComment || ''), 'warn');
       }
     } catch (e) { errTerm(e); } finally { setButtons(true); }
+  }
+
+  // ---- settings ----------------------------------------------------------
+  function renderSettings() {
+    const mode = EngcEngine.getMode();
+    const r = document.querySelector(`input[name=apiMode][value="${mode}"]`);
+    if (r) r.checked = true;
+    $('#apiKeyInput').value = EngcEngine.getKey();
+    const has = EngcEngine.hasKey();
+    const el = $('#settingsStatus');
+    if (mode === 'direct') {
+      el.innerHTML = has
+        ? '<span style="color:var(--green)">✅ ダイレクト：キー設定済み。サーバー不要で動作します。</span>'
+        : '<span style="color:var(--yellow)">⚠️ ダイレクト：キー未設定。上でキーを入力して保存してください。</span>';
+    } else {
+      el.innerHTML = '<span style="color:var(--fg-dim)">サーバー経由：バックエンド（.env のキー）を使用します。</span>';
+    }
   }
 
   // ---- toast -------------------------------------------------------------

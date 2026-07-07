@@ -233,6 +233,10 @@ body {
 .term-line .run { color: #7fd7c4; }
 .problem-card code { background: #12202e; padding: 1px 5px; border-radius: 3px; font-size: 12px; color: #9fd0c5; }
 
+/* Settings */
+.settings-status { font-size: 12px; margin-top: 4px; line-height: 1.5; }
+#apiKeyInput { background: var(--bg-3); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 7px 8px; font-family: var(--mono); font-size: 12px; }
+
 /* Mobile quick-nav (hidden on desktop) */
 .mobile-nav { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--bg-3); border-top: 1px solid var(--border); box-shadow: 0 -2px 12px rgba(0,0,0,.35); }
 .mobile-nav button { flex: 1; background: transparent; border: none; color: var(--fg); padding: 11px 4px; font-size: 12px; cursor: pointer; }

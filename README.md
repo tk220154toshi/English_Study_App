@@ -94,6 +94,48 @@ Start command は `npm start`。デプロイ後のURLをスマホでブックマ
 > 💡 現状のUIは VSCode 風の横並びレイアウト（デスクトップ最適化）で、縦長スマホでは
 > 少し窮屈です。スマホ向けのレスポンシブ表示が必要なら対応します。
 
+## 🍎 iOSアプリ化（自分専用・サーバー不要 / BYOK）
+
+自分だけで使うなら、**バックエンド無し**でiOSアプリにできます。仕組みは
+**ダイレクトモード**：アプリが自分のAnthropicキーで**端末から直接 Claude を呼ぶ**
+（キーは端末内に保存、共有秘密が無いので流出リスク最小）。
+
+### まず「ダイレクトモード」を試す（スマホのブラウザでも今すぐ）
+1. ⚙️ 設定 →「ダイレクト」を選択
+2. 自分の Anthropic API キー（`sk-ant-...`）を入力して保存
+3. 以降サーバー無しで全機能が動きます（Web版でも同じ）
+
+### Capacitor で iOS アプリにする（お手元の Mac で）
+必要：**Mac + Xcode + Node**（自分の端末に入れるだけなら無料のApple IDでOK。
+App Store配布時のみ Apple Developer $99/年）。
+
+```bash
+# リポジトリのフォルダで（Macで実行）
+npm install
+npm i -D @capacitor/cli
+npm i @capacitor/core @capacitor/ios
+
+npx cap add ios        # capacitor.config.json は同梱済み
+npx cap sync ios       # public/ をネイティブ側へコピー
+npx cap open ios       # Xcode が開く
+```
+Xcode で：自分のiPhoneを選択 →「Signing & Capabilities」で自分のApple IDチームを
+設定 → ▶ 実行。アプリ内で ⚙️ 設定 →「ダイレクト」→ 自分のキーを入力すれば完成です。
+（`capacitor.config.json` で `CapacitorHttp` を有効化済み＝CORSの問題なく直接APIを叩けます）
+
+### 本格運用に向けた仕上げ（任意・READMEの通り差し替え可能）
+- **オフライン & 審査対策**：現状 Monaco エディタを CDN から読み込みます。iOSアプリ
+  では `monaco-editor` をローカルに同梱（`public/vendor/` 等）して `index.html` の
+  loader パスをローカルに変更するのが推奨（外部コード読み込みを避ける）。
+- **キーの保管を Keychain に**：`public/engine.js` の `getKey/setKey`（現状 localStorage）
+  を、secure-storage 系プラグイン（iOS Keychain）に差し替え。
+- **声のカスタム**：`public/stage.js` の `speak()` を、ネイティブTTSプラグインや
+  正規のクラウドTTSに差し替えると、キャラクター寄りの声にできます。
+
+> ⚠️ App Store（Unlistedを含む）や TestFlight で**他人に配ると、アプリ本体からキーを
+> 抽出され得ます**。BYOK（各自が自分のキーを入力）は安全ですが、**あなたのキーを
+> 埋め込んだまま配布しない**でください。自分の端末だけで使う分には問題ありません。
+
 ## 使い方
 
 **文法モード 📝**

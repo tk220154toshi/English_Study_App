@@ -1,0 +1,10 @@
+{
+  "appId": "com.engc.app",
+  "appName": "EngC",
+  "webDir": "public",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
