@@ -22,8 +22,10 @@
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // ---- mobile app-shell: left drawer (modes) + bottom sheets --------------
-  const mq = window.matchMedia('(max-width: 820px)');
-  const isMobile = () => mq.matches;
+  // Phone tier = the full app-shell (drawer + bottom sheets). Tablet/desktop keep
+  // panels docked, so the auto-sheet behaviours below are gated to phone only.
+  const mq = window.matchMedia('(max-width: 700px), (max-height: 500px)');
+  const isPhone = () => mq.matches;
   const MODE_LABEL = { grammar: '文法', command: 'コマンド', test: 'テスト', discuss: 'ディスカッション', usage: '利用状況', settings: '設定' };
   function closeOverlays() {
     ['.activitybar', '.sidebar', '.output', '.stats'].forEach((s) => { const e = document.querySelector(s); if (e) e.classList.remove('open'); });
@@ -32,7 +34,7 @@
   function openDrawer() { closeOverlays(); document.querySelector('.activitybar').classList.add('open'); $('#backdrop').classList.add('show'); }
   function openSheet(sel) { closeOverlays(); const e = document.querySelector(sel); if (e) e.classList.add('open'); $('#backdrop').classList.add('show'); }
   function toggleSheet(sel) { const e = document.querySelector(sel); (e && e.classList.contains('open')) ? closeOverlays() : openSheet(sel); }
-  function selectMode(mode) { setMode(mode); if (isMobile()) { closeOverlays(); openSheet('.sidebar'); } }
+  function selectMode(mode) { setMode(mode); if (isPhone()) { closeOverlays(); openSheet('.sidebar'); } }
 
   // ---- boot --------------------------------------------------------------
   require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
@@ -77,7 +79,7 @@
     setupCommand(cfgCache);
     wire();
     // First launch with no backend + no key: take the user straight to Settings.
-    if (EngcEngine.getMode() === 'direct' && !EngcEngine.hasKey()) { setMode('settings'); if (isMobile()) openSheet('.sidebar'); }
+    if (EngcEngine.getMode() === 'direct' && !EngcEngine.hasKey()) { setMode('settings'); if (isPhone()) openSheet('.sidebar'); }
   }
 
   let cfgCache = null;
@@ -237,7 +239,7 @@
       <div class="pmeta">Lv.${esc(p.difficulty)} · target: ${esc(p.targetGrammar)}</div>
       <div class="pbody">${esc(p.promptJa)}</div>
       ${hints ? `<ul class="phints">${hints}</ul>` : ''}
-      <button id="probRevealBtn" class="btn ghost tiny only-mobile" style="margin-top:8px">👁 模範解答</button>
+      <button id="probRevealBtn" class="btn ghost tiny only-phone" style="margin-top:8px">👁 模範解答</button>
       <div id="refBox"></div>`;
     const rb = $('#probRevealBtn'); if (rb) rb.addEventListener('click', reveal);
   }
@@ -276,7 +278,7 @@
 
   // ---- compile / send ----------------------------------------------------
   function runCompile() {
-    if (isMobile()) closeOverlays(); // reveal the workspace / stage
+    if (isPhone()) closeOverlays(); // reveal the workspace / stage
     if (state.mode === 'usage') { toast('📊 利用状況モードです（Compile は文法/テストモードで）'); return; }
     if (state.mode === 'command') return runCommand();
     state.mode === 'discuss' ? sendDiscuss() : compile();
@@ -404,7 +406,7 @@
     renderTestPanel();
     // On mobile, surface results as a bottom sheet (but keep the stage visible
     // in command mode — the trace is reachable via the 🖥 output chip).
-    if (isMobile() && mode !== 'command') openSheet('.output');
+    if (isPhone() && mode !== 'command') openSheet('.output');
   }
 
   function renderProblemsPanel(diags, fileName) {
